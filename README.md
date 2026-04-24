@@ -35,19 +35,17 @@ Choose one track and build something that matters:
 ### 📖 Participant Guide
 
 Full participant guide, submission instructions, judging criteria, and logistics:
-👉 **[Participant Guide — LINK PLACEHOLDER]**
+👉 **[Participant Guide](https://caredevi-events.slack.com/files/U0AR8EX5X2Q/F0AUP8U21N3/particpant-guide.pdf)**
 
 ### 💬 Slack Channels
 
-Join the event Slack workspace and use the following channels:
+Join the CareDevi Events Slack workspace and use the appropriate channels including but not limited to:
 
-| Channel | Purpose |
-|---|---|
-| **#announcements** | [SLACK LINK PLACEHOLDER] — Official event updates and important notices |
-| **#hackathon-resources** | [SLACK LINK PLACEHOLDER] — Shared tools, datasets, and reference materials |
-| **#hackathon-help-support** | [SLACK LINK PLACEHOLDER] — Technical help and troubleshooting |
-| **#hackathon-ask-a-mentor** | [SLACK LINK PLACEHOLDER] — Connect with domain and technical mentors |
-| **#hackathon-demo-day** | [SLACK LINK PLACEHOLDER] — Demo day schedule, submissions, and presentation tips |
+**#announcements**\
+**#hackathon-resources**\
+**#hackathon-help-support**\
+**#hackathon-ask-a-mentor**\
+**#hackathon-demo-day**
 
 ---
 
@@ -107,7 +105,7 @@ HF_API_KEY=hf_your-api-key-here
 
 1. Open VS Code
 2. Go to the **Extensions** panel (`Ctrl+Shift+X` / `Cmd+Shift+X`)
-3. Search for **"Continue"** and install the extension by `Continue Dev`
+3. Search for **"Continue"** and install the [extension](https://marketplace.visualstudio.com/items?itemName=Continue.continue) by `Continue Dev`
 4. Once installed, you'll see the Continue icon in your left sidebar
 
 #### Step 4 — Configure Continue with a Hugging Face Model
