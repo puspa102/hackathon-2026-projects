@@ -51,3 +51,28 @@ export type CheckInFormData = {
   hasBreathingIssues: boolean;
   notes: string;
 };
+
+export type ProfileStat = {
+  title: string;
+  value: string;
+  valueColor?: string;
+  trend?: boolean;
+};
+
+export type ProfileSettingsItem = {
+  id: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+  title: string;
+  iconBackground: string;
+  iconColor: string;
+  badgeLabel?: string;
+  danger?: boolean;
+};
+
+export type ProfileSummary = {
+  name: string;
+  patientId: string;
+  stats: ProfileStat[];
+  settingsItems: ProfileSettingsItem[];
+  footerText: string;
+};

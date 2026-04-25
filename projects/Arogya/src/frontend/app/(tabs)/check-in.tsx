@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+
 import { BreathingCard } from '@/components/checkin/breathing-card';
-import { CheckInHeader } from '@/components/checkin/check-in-header';
+import { HomeHeader } from '@/components/home/home-header';
 import { CheckInSection } from '@/components/checkin/check-in-section';
 import { FeverCard } from '@/components/checkin/fever-card';
 import { NotesCard } from '@/components/checkin/notes-card';
@@ -42,7 +43,7 @@ export default function DailyCheckInScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <CheckInHeader brandName="CareLoop" />
+      <HomeHeader brandName="CareLoop" />
 
       <ScrollView
         style={styles.scrollView}
