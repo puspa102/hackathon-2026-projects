@@ -3,13 +3,15 @@ Project Name - CureIT
 Team Members - Prajan Manoj Kumar Rekha (PrajanManojKumarRekha), Eric Cariaga (eCarCodes), Jessica C O'Bonna (jessic-o), Shayan Ali (CodewithShayan456)
 
 Problem Statement -
-Healthcare workflows are often slowed by fragmented records, difficult appointment discovery, and inconsistent clinical documentation. Patients struggle to find the right specialist quickly, while clinicians spend extra time converting consultation details into structured notes. For a fast-moving care environment, this creates delays, reduced continuity, and higher documentation overhead.
+Access to timely care is often delayed when patients cannot instantly find available doctors in their preferred area or specialty. Many users want fast booking with a doctor they trust, while still having a fallback recommendation when their preferred choice is unavailable. At the same time, clinicians need a lightweight consultation workflow (chat or video) and structured documentation support without adding operational burden.
 
 Solution -
 CureIT is a prototype telehealth workflow platform focused on one clean end-to-end demo path:
 - Patient enters symptoms (example: headache).
-- System maps symptoms to a recommended specialty (example: Neurology).
-- Patient views doctor availability and books an open slot.
+- System maps symptoms to a recommended specialty (example: Neurology) and can suggest nearby available doctors.
+- Patient can choose and book a preferred doctor from any area if that doctor has availability.
+- If the preferred doctor is unavailable, the system can recommend the next available option.
+- Patient books a short 15-30 minute consultation slot for chat or video call.
 - Doctor views appointment, runs a consultation simulation, and generates a structured SOAP note.
 - SOAP note is converted into FHIR R4-style JSON for interoperable record formatting.
 
