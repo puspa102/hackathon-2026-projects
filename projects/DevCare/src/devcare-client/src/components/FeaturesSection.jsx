@@ -38,7 +38,8 @@ const features = [
 
 function FeaturesSection() {
   return (
-    <section id="features" className="site-container py-14 sm:py-24 text-center">
+    <section id="features" className="bg-[#F8FAFC] py-14 sm:py-24 text-center">
+      <div className="site-container">
       <div className="mb-16">
         <h2 className="text-3xl font-bold sm:text-4xl text-[var(--color-primary-strong)]">
           The New Standard of Care
@@ -80,6 +81,7 @@ function FeaturesSection() {
             )}
           </article>
         ))}
+      </div>
       </div>
     </section>
   )

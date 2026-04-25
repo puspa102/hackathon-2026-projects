@@ -5,7 +5,6 @@ import DashboardLayout from './layouts/DashboardLayout'
 import AuthPage from './pages/AuthPage'
 import DashboardPage from './pages/DashboardPage'
 import LandingPage from './pages/LandingPage'
-import PatientDashboardPage from './pages/PatientDashboardPage'
 
 // Doctor Pages
 import DoctorDashboard from './pages/doctor/Dashboard'
@@ -16,12 +15,12 @@ import FeedbackReview from './pages/doctor/FeedbackReview'
 import ShareConnection from './pages/doctor/ShareConnection'
 
 // Patient Pages
-import TherapySessionPage from './pages/TherapySessionPage'
-import TherapyLibraryPage from './pages/TherapyLibraryPage'
-import MySessionsPage from './pages/MySessionsPage'
-import ProgressPage from './pages/ProgressPage'
-import FeedbackPage from './pages/FeedbackPage'
-import CareBotPage from './pages/CareBotPage'
+import PatientDashboard from './pages/patient/Dashboard'
+import TherapySession from './pages/patient/TherapySession'
+import TherapyLibrary from './pages/patient/TherapyLibrary'
+import MySessions from './pages/patient/MySessions'
+import Progress from './pages/patient/Progress'
+import Feedback from './pages/patient/Feedback'
 
 function App() {
   return (
@@ -104,7 +103,7 @@ function App() {
           path="/dashboard/patient"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
-              <PatientDashboardPage />
+              <PatientDashboard />
             </ProtectedRoute>
           }
         />
@@ -112,7 +111,7 @@ function App() {
           path="/therapy-session"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
-              <TherapySessionPage />
+              <TherapySession />
             </ProtectedRoute>
           }
         />
@@ -120,7 +119,7 @@ function App() {
           path="/therapy-library"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
-              <TherapyLibraryPage />
+              <TherapyLibrary />
             </ProtectedRoute>
           }
         />
@@ -128,7 +127,7 @@ function App() {
           path="/my-sessions"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
-              <MySessionsPage />
+              <MySessions />
             </ProtectedRoute>
           }
         />
@@ -136,7 +135,7 @@ function App() {
           path="/progress"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
-              <ProgressPage />
+              <Progress />
             </ProtectedRoute>
           }
         />
@@ -144,15 +143,7 @@ function App() {
           path="/feedback"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
-              <FeedbackPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/carebot"
-          element={
-            <ProtectedRoute allowedRoles={['patient']}>
-              <CareBotPage />
+              <Feedback />
             </ProtectedRoute>
           }
         />

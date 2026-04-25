@@ -7,7 +7,11 @@ import {
   MessageSquareMore, 
   UserPlus, 
   LogOut,
-  ChevronRight
+  ChevronRight,
+  BookOpen,
+  CalendarDays,
+  Activity,
+  MessageCircle
 } from 'lucide-react'
 
 const ACCESS_TOKEN_KEY = 'devcare_access_token'
@@ -28,14 +32,18 @@ function Sidebar() {
 
   const doctorLinks = [
     { label: 'Dashboard', href: '/doctor/dashboard', icon: LayoutDashboard },
-    { label: 'Patients', href: '/doctor/patients', icon: Users },
+    { label: 'Clinical Directory', href: '/doctor/patients', icon: Users },
     { label: 'Assign Therapy', href: '/doctor/assign', icon: ClipboardList },
-    { label: 'Feedback', href: '/doctor/feedback', icon: MessageSquareMore },
-    { label: 'Connect', href: '/doctor/share', icon: UserPlus },
+    { label: 'Performance Review', href: '/doctor/feedback', icon: MessageSquareMore },
+    { label: 'Clinic Connect', href: '/doctor/share', icon: UserPlus },
   ]
 
   const patientLinks = [
     { label: 'My Dashboard', href: '/dashboard/patient', icon: LayoutDashboard },
+    { label: 'Therapy Library', href: '/therapy-library', icon: BookOpen },
+    { label: 'My Sessions', href: '/my-sessions', icon: CalendarDays },
+    { label: 'Recovery Progress', href: '/progress', icon: Activity },
+    { label: 'Session Feedback', href: '/feedback', icon: MessageCircle },
   ]
 
   const navLinks = role === 'doctor' ? doctorLinks : patientLinks

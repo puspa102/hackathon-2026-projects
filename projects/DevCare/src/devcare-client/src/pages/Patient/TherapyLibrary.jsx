@@ -1,8 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Search, Filter, MessageSquareText, History } from 'lucide-react'
 
-import PatientSidebar from '../components/PatientSidebar'
-import PatientTopNav from '../components/PatientTopNav'
 
 const USERNAME_KEY = 'devcare_username'
 const ACCESS_TOKEN_KEY = 'devcare_access_token'
@@ -31,16 +29,9 @@ function TherapyLibraryPage() {
   ]
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg)]">
-      <PatientSidebar username={username} onLogout={handleLogout} />
-
-      <main className="flex-1 pt-16 md:pt-0 md:pl-0 flex flex-col">
-        <PatientTopNav username={username} />
-        
-        <div className="flex-1 overflow-y-auto">
-          <div className="site-container py-8">
-            {/* Header */}
-            <div className="mb-8">
+    <div className="animate-fade-in">
+      {/* Header */}
+      <div className="mb-8">
               <div className="flex items-center gap-4 mb-6">
                 <button onClick={() => navigate('/dashboard/patient')} className="rounded-lg p-2 hover:bg-[var(--color-surface)]">
                   <ArrowLeft className="h-6 w-6 text-[var(--color-text)]" />
@@ -142,9 +133,6 @@ function TherapyLibraryPage() {
               </div>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
   )
 }
 

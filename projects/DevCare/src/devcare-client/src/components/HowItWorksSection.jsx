@@ -52,7 +52,7 @@ function HowItWorksSection() {
 
       <div className="grid gap-8 md:grid-cols-3">
         {steps.map((step) => (
-          <div key={step.number} className="relative group">
+          <div key={step.number} className="relative group isolate">
             <div className="mb-6 inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#E3F2FD] text-[#1E88E5] transition-transform group-hover:scale-110">
               {step.icon}
             </div>

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 function CTASection() {
   return (
-    <section className="site-container py-20 sm:py-28 text-center">
+    <section id="cta" className="site-container py-20 sm:py-28 text-center">
       <h2 className="text-4xl font-bold sm:text-5xl text-[var(--color-primary-strong)] mb-6">
         Ready to Transform Your Practice?
       </h2>

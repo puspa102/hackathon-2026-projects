@@ -2,16 +2,22 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
 import CareBot from '../components/CareBot'
 
+const ROLE_KEY = 'devcare_role'
+
 function DashboardLayout() {
+  const role = localStorage.getItem(ROLE_KEY)
+
   return (
-    <div className="dashboard-layout">
+    <div className="flex h-screen bg-[var(--color-bg)] overflow-hidden">
       <Sidebar />
-      <main className="dashboard-main">
-        <div className="py-10 px-8">
+      <div className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 overflow-y-auto pl-64 transition-all duration-300">
+        <div className="animate-fade-in p-8">
           <Outlet />
         </div>
       </main>
-      <CareBot />
+      {role === 'doctor' && <CareBot />}
+      </div>
     </div>
   )
 }

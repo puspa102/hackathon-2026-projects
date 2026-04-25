@@ -11,23 +11,15 @@ import Footer from "../components/Footer";
 
 function LandingPage() {
     return (
-        <div className="app-shell">
-            <Navbar/>
+        <div className="flex flex-col min-h-screen bg-[var(--color-bg)] w-full">
+            <Navbar />
 
-            <>
-                <section id="home">
-                    <HeroSection />
-                </section>
-                <section id="features" className="bg-[#F8FAFC]">
-                    <FeaturesSection />
-                </section>
-                <section id="how-it-works">
-                    <HowItWorksSection />
-                </section>
-                <section id="cta">
-                    <CTASection />
-                </section>
-            </>
+            <main className="flex-1 w-full">
+                <HeroSection />
+                <FeaturesSection />
+                <HowItWorksSection />
+                <CTASection />
+            </main>
             
             <Footer />
         </div>
