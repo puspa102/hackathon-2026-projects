@@ -9,3 +9,10 @@ class DoctorListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Doctor.objects.filter(available=True)
+
+
+class NearbyDoctorView(generics.ListAPIView):
+    serializer_class = DoctorSerializer
+
+    def get_queryset(self):
+        return Doctor.objects.filter(available=True)

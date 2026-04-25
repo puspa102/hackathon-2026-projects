@@ -42,7 +42,10 @@ INSTALLED_APPS = [
     'checkins',
     'medicines',
     'reports',
-]
+    'doctors',
+    'chat',
+    'rest_framework',
+    'rest_framework.authtoken',]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -54,6 +57,15 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
 
 CORS_ALLOW_ALL_ORIGINS = True
 
