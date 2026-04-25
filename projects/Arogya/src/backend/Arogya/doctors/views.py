@@ -1,11 +1,13 @@
 from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+
 from .models import Doctor
 from .serializers import DoctorSerializer
 
-# Create your views here.
 
 class DoctorListView(generics.ListAPIView):
     serializer_class = DoctorSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Doctor.objects.filter(available=True)
@@ -13,6 +15,7 @@ class DoctorListView(generics.ListAPIView):
 
 class NearbyDoctorView(generics.ListAPIView):
     serializer_class = DoctorSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Doctor.objects.filter(available=True)

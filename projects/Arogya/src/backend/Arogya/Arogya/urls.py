@@ -25,4 +25,7 @@ urlpatterns = [
     path('api/checkins/', include('checkins.urls')),
     path('api/doctors/', include('doctors.urls')),
     path('api/chats/', include('chat.urls')),
+    path('api/accounts/', include('accounts.urls')),
+    path('api/reports/', include('reports.urls')),
+    path('api/checkins/', include('checkins.urls')),
 ]

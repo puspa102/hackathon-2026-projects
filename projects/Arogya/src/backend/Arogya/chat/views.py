@@ -15,3 +15,5 @@ class ChatListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(sender=self.request.user)
+
+permission_classes = [IsAuthenticated]

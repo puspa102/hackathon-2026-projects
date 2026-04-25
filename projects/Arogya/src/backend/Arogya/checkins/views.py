@@ -1,11 +1,15 @@
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework import generics
+from accounts.permissions import IsPatient
+from .models import DailyCheckIn
+from .serializers import DailyCheckInSerializer
 
 
-class CheckInListCreateView(APIView):
-    def get(self, request):
-        return Response([])
+class CheckInListCreateView(generics.ListCreateAPIView):
+    serializer_class = DailyCheckInSerializer
+    permission_classes = [IsPatient]
 
-    def post(self, request):
-        return Response(request.data, status=status.HTTP_201_CREATED)
+    def get_queryset(self):
+        return DailyCheckIn.objects.filter(user=self.request.user).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
