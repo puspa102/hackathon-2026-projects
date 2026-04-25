@@ -1,0 +1,15 @@
+AI.md
+context.md
+.env
+questions.md
+biggerscope.md
+__pycache__/
+*.pyc
+teammate.md
+
+AI.md
+context.md
+.cursorrules
+.env
+.env.local
+.env.*.local
