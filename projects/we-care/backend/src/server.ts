@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import extractRouter from './routes/extract';
 import specialistsRouter from './routes/specialists';
+import referralsRouter from './routes/referrals';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,6 +17,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/extract', extractRouter);
 app.use('/api/specialists', specialistsRouter);
+app.use('/api/referrals', referralsRouter);
 
 app.listen(PORT, () => {
   console.log(`RefAI backend running on port ${PORT}`);
