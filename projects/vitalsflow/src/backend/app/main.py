@@ -15,6 +15,7 @@ app = FastAPI(
     title="VitalsFlow API",
     version="1.0.0",
     description="AI-powered clinical triage — HL7 FHIR + NEWS2",
+    swagger_ui_parameters={"syntaxHighlight": False}
 )
 
 # CORS — allow the Next.js frontend (local dev + production Vercel)

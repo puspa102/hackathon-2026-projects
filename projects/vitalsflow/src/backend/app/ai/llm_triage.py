@@ -3,7 +3,7 @@ LLM Triage Agent — calls Gemini to produce a TriageOutput from clinical summar
 
 Design rules:
 - score_patient() NEVER raises — always returns a TriageOutput (fallback on any error)
-- Uses the new google-genai SDK via get_gemini_client()
+- Uses google-generativeai via get_gemini_model()
 - Temperature 0.1 for minimal clinical variance
 - Strips markdown fences before JSON parsing
 """
@@ -13,14 +13,10 @@ import json
 import logging
 import re
 
-# Third-party
-from google.genai import types
-
 # Internal
-from app.ai.client import get_gemini_client
+from app.ai.client import get_gemini_model
 from app.ai.prompts import build_triage_system_prompt, build_triage_user_message
-from app.core.config import settings
-from app.schemas.triage import News2Subscores, TriageOutput, VitalsInput
+from app.schemas.triage import TriageOutput, VitalsInput
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +39,8 @@ async def score_patient(clinical_summary: str, vitals: VitalsInput) -> TriageOut
 
     Returns the safe _FALLBACK on ANY exception — callers never need to catch.
     """
-    client = get_gemini_client()
-    if client is None:
+    model = get_gemini_model()
+    if model is None:
         logger.warning("Gemini client unavailable (no API key) — using fallback")
         return _FALLBACK
 
@@ -52,14 +48,13 @@ async def score_patient(clinical_summary: str, vitals: VitalsInput) -> TriageOut
     user_message = build_triage_user_message(clinical_summary, vitals)
 
     try:
-        response = client.models.generate_content(
-            model=settings.gemini_model,
-            contents=user_message,
-            config=types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.1,
-                max_output_tokens=512,
-            ),
+        prompt = f"{system_prompt}\n\n{user_message}"
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.1,
+                "max_output_tokens": 512,
+            },
         )
         raw_text = response.text or ""
     except Exception as exc:
