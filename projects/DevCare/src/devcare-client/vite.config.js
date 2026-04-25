@@ -10,4 +10,10 @@ export default defineConfig({
     react(),
     babel({ presets: [reactCompilerPreset()] })
   ],
+  optimizeDeps: {
+    include: ['@mediapipe/pose', '@mediapipe/camera_utils', '@mediapipe/drawing_utils']
+  },
+  define: {
+    global: 'window',
+  }
 })
