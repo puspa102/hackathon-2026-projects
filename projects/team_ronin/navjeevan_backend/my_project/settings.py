@@ -35,7 +35,9 @@ THIRD_PARTY_APPS = [
     'corsheaders',
 ]
 
-# LOCAL_APPS = []
+LOCAL_APPS = [
+    'user',
+]
 
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -46,11 +48,12 @@ DJANGO_APPS = [
     'django.contrib.staticfiles',
 ]
 
-INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -150,12 +153,82 @@ SWAGGER_SETTINGS = {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header',
-            'description': 'JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"',
         }
     },
-    'SECURITY': [
-        {
-            'Bearer': []
-        }
-    ]
+    'USE_SESSION_AUTH': False,
+    'JSON_EDITOR': True,               # ← key fix for editable body
+    'SUPPORTED_SUBMIT_METHODS': [
+        'get', 'post', 'put', 'patch', 'delete'
+    ],
+    'DEFAULT_MODEL_RENDERING': 'example',  # ← shows example values by default
+    'PERSIST_AUTH': True,
+}
+
+# Custom User Model
+AUTH_USER_MODEL = 'user.NormalUser'
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOW_CREDENTIALS = True
+# ─────────────────────────────────────────────────────────────────────────────
+# Email — Gmail SMTP
+# Add these to your settings.py
+# Requires python-decouple:  pip install python-decouple
+# ─────────────────────────────────────────────────────────────────────────────
+
+from decouple import config
+
+EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST          = 'smtp.gmail.com'
+EMAIL_PORT          = 587
+EMAIL_USE_TLS       = True
+EMAIL_USE_SSL       = False           # TLS and SSL are mutually exclusive
+EMAIL_HOST_USER     = config('EMAIL_HOST_USER')      # reads from .env
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')  # Gmail App Password (16 chars, no spaces)
+DEFAULT_FROM_EMAIL  = config('EMAIL_HOST_USER')      # "From:" address shown to recipient
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Logging — surfaces email errors in your terminal / log file
+# ─────────────────────────────────────────────────────────────────────────────
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{levelname}] {asctime} {module}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        # Show all logs from your app (replace 'user' with your app name)
+        'user': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        # Show Django mail errors
+        'django.core.mail': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
 }
