@@ -2,7 +2,7 @@
 // It is safe to delete this file as it does not affect the functionality of your application.
 {
   "cesVersion": "2.21.3",
-  "projectName": "frontend",
+  "projectName": "01",
   "packages": [
     {
       "name": "react-navigation",
@@ -25,13 +25,13 @@
     "noInstall": false,
     "overwrite": false,
     "importAlias": true,
-    "packageManager": "npm",
+    "packageManager": "pnpm",
     "eas": false,
     "publish": false
   },
   "packageManager": {
-    "type": "npm",
-    "version": "11.4.2"
+    "type": "pnpm",
+    "version": "10.7.0"
   },
   "os": {
     "type": "Windows_NT",
