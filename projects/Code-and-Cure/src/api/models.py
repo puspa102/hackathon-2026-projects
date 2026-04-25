@@ -25,6 +25,8 @@ class Doctor(BaseModel):
     name: str
     specialty: str
     location: str
+    rating: float          # e.g., 4.8 (from Google Reviews)
+    review_count: int      # e.g., 127 (total reviews)
 
 class AppointmentSlot(BaseModel):
     id: str
