@@ -32,3 +32,22 @@ export type HomeSummary = {
   };
   emergencyLabel: string;
 };
+
+export type SymptomOption = {
+  id: string;
+  label: string;
+  icon: keyof typeof MaterialIcons.glyphMap;
+};
+
+export type CheckInFormData = {
+  patientName: string;
+  title: string;
+  subtitle: string;
+  symptomOptions: SymptomOption[];
+  selectedSymptoms: string[];
+  painLevel: number;
+  hasFever: boolean;
+  temperature: string;
+  hasBreathingIssues: boolean;
+  notes: string;
+};
