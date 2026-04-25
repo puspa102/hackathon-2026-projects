@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:medimeal/models/medications.dart';
+import 'package:medimeal/screens/meals_tab.dart';
 
 import '../models/active_workflow.dart';
 import '../models/care_state.dart';
@@ -8,7 +9,6 @@ import '../models/workflow_suggestion.dart';
 import '../services/mock_data_service.dart';
 import '../services/workflow_engine.dart';
 import 'home_tab.dart';
-import 'insights_tab.dart';
 import 'medications_tab.dart';
 import 'workflows_tab.dart';
 
@@ -111,7 +111,7 @@ ${caution.isNotEmpty ? '\nCaution: $caution' : ''}
       WorkflowsTab(
         activeWorkflows: activeWorkflows,
       ),
-      InsightsTab(
+      MealsTab(
         careState: latestCareState,
       ),
     ];
@@ -144,9 +144,9 @@ ${caution.isNotEmpty ? '\nCaution: $caution' : ''}
             label: 'Workflows',
           ),
           NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Insights',
+            icon: Icon(Icons.restaurant_menu_outlined),
+            selectedIcon: Icon(Icons.restaurant_menu),
+            label: 'Meals',
           ),
         ],
       ),
