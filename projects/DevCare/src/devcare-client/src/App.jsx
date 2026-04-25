@@ -6,6 +6,12 @@ import DashboardPage from './pages/DashboardPage'
 import DoctorDashboardPage from './pages/DoctorDashboardPage'
 import LandingPage from './pages/LandingPage'
 import PatientDashboardPage from './pages/PatientDashboardPage'
+import TherapySessionPage from './pages/TherapySessionPage'
+import TherapyLibraryPage from './pages/TherapyLibraryPage'
+import MySessionsPage from './pages/MySessionsPage'
+import ProgressPage from './pages/ProgressPage'
+import FeedbackPage from './pages/FeedbackPage'
+import CareBotPage from './pages/CareBotPage'
 
 function App() {
   return (
@@ -34,6 +40,54 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={['patient']}>
             <PatientDashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/therapy-session"
+        element={
+          <ProtectedRoute allowedRoles={['patient']}>
+            <TherapySessionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/therapy-library"
+        element={
+          <ProtectedRoute allowedRoles={['patient']}>
+            <TherapyLibraryPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-sessions"
+        element={
+          <ProtectedRoute allowedRoles={['patient']}>
+            <MySessionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/progress"
+        element={
+          <ProtectedRoute allowedRoles={['patient']}>
+            <ProgressPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/feedback"
+        element={
+          <ProtectedRoute allowedRoles={['patient']}>
+            <FeedbackPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/carebot"
+        element={
+          <ProtectedRoute allowedRoles={['patient']}>
+            <CareBotPage />
           </ProtectedRoute>
         }
       />
