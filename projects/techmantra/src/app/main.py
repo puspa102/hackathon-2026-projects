@@ -3,7 +3,7 @@ from session_state import init_session
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from pages import signup  # Make sure signup.py is in the same folder
+from pages import signup, symptoms
 
 # 1. Start the memory
 init_session()
@@ -30,6 +30,4 @@ elif page == "My Profile":
         st.rerun()
 
 elif page == "Symptom Checker":
-    st.title("🌡️ Symptom Checker")
-    st.write(f"Hello {st.session_state.user_profile['name']}, tell me what's wrong.")
-    # This is where we will put the BioMistral code next!
+    symptoms.show()
