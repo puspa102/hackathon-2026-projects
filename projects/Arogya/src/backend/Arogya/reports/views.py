@@ -1,7 +1,7 @@
 from rest_framework import generics
 from .models import DischargeReport
 from .serializers import DischargeReportSerializer
-# Create your views here.
+
 
 class ReportListCreateView(generics.ListCreateAPIView):
     serializer_class = DischargeReportSerializer
