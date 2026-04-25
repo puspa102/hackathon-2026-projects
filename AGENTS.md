@@ -23,14 +23,14 @@ projects/we-care/
 
 ## Tech Stack
 
-| Layer         | Technology                                                          |
-| ------------- | ------------------------------------------------------------------- |
+| Layer         | Technology                                                           |
+| ------------- | -------------------------------------------------------------------- |
 | Frontend      | Vite, React, TypeScript, TailwindCSS, Zustand, Axios, TanStack Query |
-| Backend       | Node.js, TypeScript                                                 |
-| Database      | Supabase (PostgreSQL + Auth)                                        |
-| AI            | Google Gemini API                                                   |
-| Design        | Claude, Google Stitch                                               |
-| Orchestration | Docker                                                              |
+| Backend       | Node.js, TypeScript                                                  |
+| Database      | Supabase (PostgreSQL + Auth)                                         |
+| AI            | Google Gemini API                                                    |
+| Design        | Claude, Google Stitch                                                |
+| Orchestration | Docker                                                               |
 
 ## Required Deliverables
 
@@ -70,6 +70,8 @@ For every feature or change:
 
 - Conventional Commits format (`feat:`, `fix:`, `chore:`, etc.)
 - Micro-commits per logical change, even within one file
+- Commit in small code changes if possible small chunk of code from file
+- try not to commit multiple files in single commit
 - Short subject lines — no filler
 - Commit history is scored; commit early and often
 - Do not add `Co-Authored-By:` AI attribution to commits
