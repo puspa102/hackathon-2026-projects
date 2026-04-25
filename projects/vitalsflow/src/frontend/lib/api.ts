@@ -36,6 +36,32 @@ export interface TriageResult {
   suggested_actions: string[];
 }
 
+export interface ApproveActionPayload {
+  action: string;
+  justification: string;
+  risk_score: number;
+  news2_score: number;
+  triage_tier: string;
+}
+
+export interface ServiceRequestDraft {
+  resourceType: "ServiceRequest";
+  id: string;
+  status: "draft";
+  intent: "proposal";
+  priority: "routine" | "urgent" | "asap" | "stat" | null;
+  subject: { reference: string };
+  code: { text: string };
+  authoredOn: string;
+  note: Array<{ text: string }>;
+}
+
+export interface ApproveActionResult {
+  message: string;
+  patient_id: string;
+  service_request: ServiceRequestDraft;
+}
+
 export interface PatientSummary {
   patient_id: string;
   name: string;
@@ -59,9 +85,13 @@ export const DEFAULT_VITALS: VitalsPayload = {
 
 // ── Internal fetch wrapper ──────────────────────────────────────────────────
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const method = options?.method ?? "GET";
+  console.debug("[VitalsFlow API] request", { method, url });
   const res = await fetch(url, options);
+  console.debug("[VitalsFlow API] response", { method, url, status: res.status, ok: res.ok });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Unknown error" }));
+    console.error("[VitalsFlow API] error response", { method, url, error: err });
     throw new Error(err.detail || `HTTP ${res.status}`);
   }
   return res.json() as Promise<T>;
@@ -99,10 +129,25 @@ export async function runTriage(
   patientId: string,
   vitals: VitalsPayload
 ): Promise<TriageResult> {
+  console.log("[VitalsFlow API] runTriage called", { patientId, vitals });
   return apiFetch<TriageResult>(`${BASE_URL}/triage/${patientId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(vitals),
+  });
+}
+
+/**
+ * Draft a FHIR ServiceRequest for an approved action.
+ */
+export async function approveAction(
+  patientId: string,
+  payload: ApproveActionPayload
+): Promise<ApproveActionResult> {
+  return apiFetch<ApproveActionResult>(`${BASE_URL}/triage/${patientId}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
   });
 }
 

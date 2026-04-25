@@ -290,7 +290,7 @@ export function VitalsForm({
                 transition: "all 0.2s",
               }}
             >
-              <div className="relative flex-shrink-0">
+              <div className="relative shrink-0">
                 <input
                   type="checkbox"
                   id="vital-supplemental-o2"
@@ -328,7 +328,10 @@ export function VitalsForm({
         {/* Submit button */}
         <button
           id="run-triage-btn"
-          onClick={onSubmit}
+          onClick={() => {
+            console.log("[VitalsFlow] Run AI Triage button clicked");
+            onSubmit();
+          }}
           disabled={isLoading}
           className="btn-primary w-full py-3"
           style={{ fontSize: "0.9375rem" }}

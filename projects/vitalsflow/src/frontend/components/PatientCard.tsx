@@ -55,7 +55,7 @@ export function PatientCard({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div
-            className="flex-shrink-0 flex h-7 w-7 items-center justify-center rounded-full"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
             style={{
               background: isSelected
                 ? "rgba(59,130,246,0.15)"
@@ -76,7 +76,7 @@ export function PatientCard({
           </span>
         </div>
 
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           {triageResult ? (
             <RiskBadge
               tier={triageResult.triage_tier}
@@ -93,7 +93,7 @@ export function PatientCard({
                 color: "var(--text-muted)",
               }}
             >
-              Unassessed
+              Not assessed
             </span>
           )}
         </div>
@@ -104,7 +104,7 @@ export function PatientCard({
         className="mt-1.5 truncate text-[10px] pl-9"
         style={{ color: "var(--text-muted)" }}
       >
-        DOB: {patient.dob} &middot; {patient.gender}
+        DOB: {patient.dob} &middot; {patient.gender} &middot; ID: {patient.id}
       </p>
     </div>
   );

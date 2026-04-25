@@ -9,7 +9,7 @@ interface RiskBadgeProps {
   size?: "sm" | "lg";
 }
 
-type Tier = "critical" | "urgent" | "routine";
+type Tier = "critical" | "urgent" | "routine" | "unknown";
 
 const tierConfig: Record<Tier, {
   bg: string;
@@ -39,6 +39,13 @@ const tierConfig: Record<Tier, {
     dot: "#22c55e",
     glow: "0 0 12px rgba(34,197,94,0.2)",
   },
+  unknown: {
+    bg: "rgba(30, 41, 59, 0.5)",
+    border: "rgba(51, 65, 85, 0.6)",
+    color: "rgba(148, 163, 184, 0.8)",
+    dot: "#64748b",
+    glow: "none",
+  },
 };
 
 const fallbackConfig = {
@@ -50,7 +57,8 @@ const fallbackConfig = {
 };
 
 export function RiskBadge({ tier, score, news2Score, size = "sm" }: RiskBadgeProps) {
-  const config = tierConfig[tier as Tier] ?? fallbackConfig;
+  const normalizedTier = (tier as Tier) in tierConfig ? (tier as Tier) : "unknown";
+  const config = tierConfig[normalizedTier] ?? fallbackConfig;
   const isPending = score === 0;
 
   return (
@@ -74,9 +82,14 @@ export function RiskBadge({ tier, score, news2Score, size = "sm" }: RiskBadgePro
       />
 
       {/* Tier label */}
-      <span className="capitalize">{tier}</span>
+      <span className="capitalize">{normalizedTier}</span>
 
-      {!isPending && (
+      {isPending ? (
+        <>
+          <span style={{ opacity: 0.4 }}>·</span>
+          <span>Pending analysis</span>
+        </>
+      ) : (
         <>
           <span style={{ opacity: 0.4 }}>·</span>
           <span>{score}/10</span>

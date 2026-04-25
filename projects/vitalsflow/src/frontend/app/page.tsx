@@ -22,10 +22,12 @@ import { TriageScoreCard } from "@/components/TriageScoreCard";
 
 import {
   searchPatients,
+  getPatientSummary,
   runTriage,
   healthCheck,
   DEFAULT_VITALS,
   type Patient,
+  type PatientSummary,
   type VitalsPayload,
   type TriageResult,
 } from "@/lib/api";
@@ -46,6 +48,8 @@ export default function Dashboard() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedSummary, setSelectedSummary] = useState<PatientSummary | null>(null);
+  const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [vitals, setVitals] = useState<VitalsPayload>(DEFAULT_VITALS);
   const [triageResults, setTriageResults] = useState<Record<string, TriageResult>>({});
   const [isSearching, setIsSearching] = useState(false);
@@ -53,12 +57,16 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const summaryRequestRef = useRef(0);
 
   // ── Health check ────────────────────────────────────────────────────────────
   useEffect(() => {
     healthCheck().then(setBackendOnline);
     const interval = setInterval(() => {
-      healthCheck().then(setBackendOnline);
+      healthCheck().then((isOnline) => {
+        setBackendOnline(isOnline);
+        console.log("keepalive ping sent");
+      });
     }, 600_000);
     return () => clearInterval(interval);
   }, []);
@@ -79,19 +87,46 @@ export default function Dashboard() {
     }
   }, [searchQuery]);
 
-  const handlePatientSelect = useCallback((patient: Patient) => {
+  const handlePatientSelect = useCallback(async (patient: Patient) => {
     setSelectedPatient(patient);
+    setSelectedSummary(null);
+    setIsLoadingSummary(true);
     setError(null);
+
+    const requestId = ++summaryRequestRef.current;
+
+    try {
+      const summary = await getPatientSummary(patient.id);
+      if (summaryRequestRef.current === requestId) {
+        setSelectedSummary(summary);
+      }
+    } catch (err) {
+      if (summaryRequestRef.current === requestId) {
+        setError(err instanceof Error ? err.message : "Failed to load patient summary");
+      }
+    } finally {
+      if (summaryRequestRef.current === requestId) {
+        setIsLoadingSummary(false);
+      }
+    }
   }, []);
 
   const handleTriageSubmit = useCallback(async () => {
     if (!selectedPatient) return;
+    console.log("[VitalsFlow] Run AI Triage clicked", {
+      patientId: selectedPatient.id,
+      patientName: selectedPatient.name,
+      vitals,
+    });
     setIsTriaging(true);
     setError(null);
     try {
+      console.log("[VitalsFlow] triage request starting");
       const result = await runTriage(selectedPatient.id, vitals);
+      console.log("[VitalsFlow] triage response received", result);
       setTriageResults((prev) => ({ ...prev, [selectedPatient.id]: result }));
     } catch (err) {
+      console.error("[VitalsFlow] triage request failed", err);
       setError(err instanceof Error ? err.message : "Triage failed");
     } finally {
       setIsTriaging(false);
@@ -218,7 +253,7 @@ export default function Dashboard() {
             color: "#fca5a5",
           }}
         >
-          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <AlertCircle className="h-4 w-4 shrink-0" />
           <span className="flex-1">{error}</span>
           <button
             onClick={() => setError(null)}
@@ -234,7 +269,7 @@ export default function Dashboard() {
 
         {/* ── Left sidebar ─────────────────────────────────────────────────── */}
         <aside
-          className="flex w-72 flex-shrink-0 flex-col"
+          className="flex w-72 shrink-0 flex-col"
           style={{ borderRight: "1px solid var(--border-subtle)" }}
         >
           {/* Search box */}
@@ -264,7 +299,7 @@ export default function Dashboard() {
                 id="search-btn"
                 onClick={handleSearch}
                 disabled={isSearching}
-                className="btn-primary flex-shrink-0 px-3"
+                className="btn-primary shrink-0 px-3"
                 aria-label="Search patients"
               >
                 {isSearching ? (
@@ -444,6 +479,17 @@ export default function Dashboard() {
                       ID: {selectedPatient.id}
                     </span>
                   </p>
+                  <div
+                    className="mt-3 rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-400"
+                  >
+                    {isLoadingSummary ? (
+                      <span className="animate-pulse">Loading clinical summary...</span>
+                    ) : selectedSummary ? (
+                      <span className="whitespace-pre-line">{selectedSummary.clinical_summary}</span>
+                    ) : (
+                      <span>Selecting patient summary...</span>
+                    )}
+                  </div>
                 </div>
                 {currentTriageResult ? (
                   <RiskBadge
@@ -501,11 +547,13 @@ export default function Dashboard() {
                     </div>
                     <div className="col-span-2">
                       <ActionCenter
+                        patientId={selectedPatient.id}
                         actions={currentTriageResult.suggested_actions}
                         justification={currentTriageResult.justification}
                         news2Score={currentTriageResult.news2_score}
                         riskScore={currentTriageResult.risk_score}
                         tier={currentTriageResult.triage_tier}
+                        onError={setError}
                       />
                     </div>
                   </div>

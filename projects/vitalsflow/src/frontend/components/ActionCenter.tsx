@@ -9,14 +9,17 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { approveAction } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 interface ActionCenterProps {
+  patientId: string;
   actions: string[];
   justification: string;
   news2Score: number;
   riskScore: number;
   tier: string;
+  onError?: (message: string) => void;
 }
 
 type Tier = "critical" | "urgent" | "routine";
@@ -40,14 +43,17 @@ const tierStyle: Record<Tier, { accent: string; bg: string; border: string }> = 
 };
 
 export function ActionCenter({
+  patientId,
   actions,
   justification,
   news2Score,
   riskScore,
   tier,
+  onError,
 }: ActionCenterProps) {
   const [approved, setApproved] = useState<Set<number>>(new Set());
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const [approving, setApproving] = useState<Set<number>>(new Set());
   const [justExpanded, setJustExpanded] = useState(true);
 
   const approve = (i: number) => {
@@ -57,6 +63,34 @@ export function ActionCenter({
   const dismiss = (i: number) => {
     setDismissed((prev) => new Set([...prev, i]));
     setApproved((prev) => { const n = new Set(prev); n.delete(i); return n; });
+  };
+
+  const handleApprove = async (i: number) => {
+    if (approving.has(i)) return;
+
+    const action = actions[i];
+    if (!action) return;
+
+    setApproving((prev) => new Set(prev).add(i));
+
+    try {
+      await approveAction(patientId, {
+        action,
+        justification,
+        risk_score: riskScore,
+        news2_score: news2Score,
+        triage_tier: tier,
+      });
+      approve(i);
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : "Failed to draft ServiceRequest");
+    } finally {
+      setApproving((prev) => {
+        const next = new Set(prev);
+        next.delete(i);
+        return next;
+      });
+    }
   };
 
   const style = tierStyle[tier as Tier] ?? tierStyle.routine;
@@ -114,7 +148,7 @@ export function ActionCenter({
             />
           </div>
           <span
-            className="text-[10px] flex-shrink-0"
+            className="text-[10px] shrink-0"
             style={{ color: "var(--text-tertiary)" }}
           >
             {approvedCount}/{totalCount} approved
@@ -206,7 +240,7 @@ export function ActionCenter({
                   }}
                 >
                   {/* Status icon */}
-                  <div className="flex-shrink-0 w-5 flex items-center justify-center">
+                  <div className="w-5 shrink-0 flex items-center justify-center">
                     {isApproved ? (
                       <CheckCircle2
                         className="h-4 w-4 check-animate"
@@ -219,7 +253,7 @@ export function ActionCenter({
                       />
                     ) : (
                       <span
-                        className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+                        className="h-1.5 w-1.5 rounded-full shrink-0"
                         style={{
                           background: isCriticalPending
                             ? "#ef4444"
@@ -245,11 +279,12 @@ export function ActionCenter({
 
                   {/* Buttons */}
                   {!isApproved && !isDismissed && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <button
                         id={`approve-action-${i}`}
-                        onClick={() => approve(i)}
-                        className="px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all duration-150 hover:-translate-y-0.5"
+                        onClick={() => void handleApprove(i)}
+                        disabled={approving.has(i)}
+                        className="px-2.5 py-1 text-[10px] font-semibold rounded-md transition-all duration-150 hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60"
                         style={{
                           background: "rgba(34, 197, 94, 0.1)",
                           border: "1px solid rgba(34, 197, 94, 0.3)",
@@ -262,7 +297,7 @@ export function ActionCenter({
                           (e.currentTarget as HTMLElement).style.background = "rgba(34,197,94,0.1)";
                         }}
                       >
-                        Approve
+                        {approving.has(i) ? "Saving..." : "Approve"}
                       </button>
                       <button
                         id={`dismiss-action-${i}`}
