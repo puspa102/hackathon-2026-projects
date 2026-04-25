@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'accounts',
     'alerts',
     'checkins',
-    'medicines',
+    'medications',
     'reports',
 ]
 
