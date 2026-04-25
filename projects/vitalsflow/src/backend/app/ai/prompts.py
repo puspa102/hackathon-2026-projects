@@ -62,11 +62,11 @@ Your output will be consumed programmatically. Precision and strict adherence to
 
 ## OUTPUT SCHEMA (strict - no extra fields, no omissions)
 
-{
-  "news2": {
+{{
+  "news2": {{
     "score": <integer | null>,
     "risk": <"low" | "low_medium" | "medium" | "high" | "critical" | "insufficient_data">,
-    "subscores": {
+    "subscores": {{
       "respiratory_rate": <integer | null>,
       "spo2": <integer | null>,
       "supplemental_o2": <integer | null>,
@@ -74,12 +74,57 @@ Your output will be consumed programmatically. Precision and strict adherence to
       "heart_rate": <integer | null>,
       "consciousness": <integer | null>,
       "temperature": <integer | null>
-    },
+    }},
     "spo2_scale_used": <1 | 2 | null>,
     "missing_parameters": [<"respiratory_rate" | "spo2" | "supplemental_o2" | "systolic_bp" | "heart_rate" | "consciousness" | "temperature">],
     "reason": "<One concise sentence: state which parameters drove the score and why the risk tier was assigned>",
     "actions": [<strings - ordered by priority, max 4>],
     "data_confidence": <"complete" | "partial" | "insufficient">
-  }
-}
+  }}
+}}
 """
+
+
+# ---------------------------------------------------------------------------
+# New triage prompt — used by the VitalsInput-based flow (score_patient)
+# ---------------------------------------------------------------------------
+
+_TRIAGE_SYSTEM_PROMPT = (
+    "You are a senior triage nurse with 15 years of emergency department experience. "
+    "You score patients using the NEWS2 (National Early Warning Score 2) protocol. "
+    "NEWS2 parameters: respiratory rate, SpO2, systolic BP, heart rate, "
+    "consciousness (ACVPU scale), temperature, supplemental O2.\n"
+    "You MUST respond with valid JSON only. No markdown. No explanation outside the JSON.\n"
+    'Schema: {"risk_score": int 1-10, "news2_score": int, '
+    '"triage_tier": "critical"|"urgent"|"routine", '
+    '"justification": "2-3 sentence clinical rationale", '
+    '"suggested_actions": ["string array of 2-5 items ordered by priority"]}'
+)
+
+
+def build_triage_system_prompt() -> str:
+    """Return the system prompt for the VitalsInput-based triage agent."""
+    return _TRIAGE_SYSTEM_PROMPT
+
+
+def build_triage_user_message(clinical_summary: str, vitals: object) -> str:
+    """
+    Format the user turn of the triage prompt.
+
+    Args:
+        clinical_summary: Normalised plain-text patient context string.
+        vitals: VitalsInput instance with current measurements.
+    """
+    return (
+        f"{clinical_summary}\n\n"
+        "CURRENT VITALS:\n"
+        f"- Heart rate: {vitals.heart_rate} bpm\n"
+        f"- BP: {vitals.systolic_bp}/{vitals.diastolic_bp} mmHg\n"
+        f"- SpO2: {vitals.spo2}%\n"
+        f"- Temperature: {vitals.temperature}°C\n"
+        f"- Respiratory rate: {vitals.respiratory_rate}/min\n"
+        f"- Consciousness: {vitals.consciousness}\n"
+        f"- On supplemental O2: {vitals.on_supplemental_o2}\n\n"
+        "Calculate NEWS2 score, risk score 1-10, triage tier, and 3-5 suggested actions."
+    )
+
