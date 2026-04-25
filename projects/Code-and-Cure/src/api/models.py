@@ -3,8 +3,14 @@ from typing import List, Optional, Dict
 from datetime import datetime
 
 # --- Auth Models ---
+class UserRegister(BaseModel):
+    email: str
+    password: str
+    full_name: str
+    role: str # 'patient' or 'doctor'
+
 class UserLogin(BaseModel):
-    username: str
+    email: str
     password: str
 
 class AuthResponse(BaseModel):
