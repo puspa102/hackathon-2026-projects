@@ -55,7 +55,7 @@
 
       <!-- Feasibility -->
       <div id="feasibility-card" class="card">
-        <h3><span class="icon">🎯</span> Recommendation</h3>
+        <h3><span class="icon">🎯</span> Feasibility Score</h3>
         <div id="feasibility-badge"></div>
       </div>
 
@@ -69,6 +69,27 @@
       <div id="benefits-card" class="card">
         <h3><span class="icon">📊</span> Benefit Details</h3>
         <div id="benefit-details"></div>
+      </div>
+
+      <!-- Recommendations -->
+      <div id="recommendations-card" class="card">
+        <h3><span class="icon">💡</span> Recommendations</h3>
+        <div id="recommendation-details"></div>
+      </div>
+
+      <!-- Debug Data Container -->
+      <div id="debug-card" class="card debug-card" style="display: none;">
+        <h3><span class="icon">🔍</span> Scraped Data <button id="toggle-debug" class="toggle-debug">[Show]</button></h3>
+        <div id="debug-content" class="debug-content" style="display: none;">
+          <div class="debug-section">
+            <h4>Basic Info:</h4>
+            <pre id="debug-basic"></pre>
+          </div>
+          <div class="debug-section">
+            <h4>Page Content (first 1000 chars):</h4>
+            <pre id="debug-content-text"></pre>
+          </div>
+        </div>
       </div>
 
       <!-- Action Button -->

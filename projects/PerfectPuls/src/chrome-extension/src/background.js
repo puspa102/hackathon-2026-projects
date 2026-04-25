@@ -5,48 +5,6 @@ console.log('Policy Pilot: Background script loaded');
 const API_BASE_URL = 'http://localhost:8000/api/analyze';
 const API_KEY = ''; // Add your API key here
 
-// Dummy response for development/testing when API is not available
-const DUMMY_API_RESPONSE = {
-  "summary": "Great news! Your insurance covers acupuncture treatments under Alternative Medicine benefits. You have excellent coverage with low out-of-pocket costs and plenty of sessions remaining for this year.",
-  "match_checklist": [
-    {
-      "item": "Service Coverage",
-      "status": "✅ Covered",
-      "details": "Acupuncture is covered under Alternative Medicine"
-    },
-    {
-      "item": "Network Status", 
-      "status": "✅ In-Network",
-      "details": "Provider is in your preferred network"
-    },
-    {
-      "item": "Annual Limit",
-      "status": "✅ Available", 
-      "details": "16 sessions remaining out of 20"
-    }
-  ],
-  "feasibility": {
-    "score": "High",
-    "color": "green",
-    "message": "Highly recommended - excellent coverage and savings"
-  },
-  "benefits_services": {
-    "service_name": "Acupuncture Treatment",
-    "coverage_type": "Alternative Medicine", 
-    "copay": "$25 per session",
-    "sessions_used": "4 of 20",
-    "sessions_remaining": 16,
-    "renewal_date": "January 1, 2027"
-  },
-  "money_saved": {
-    "session_cost": "$120",
-    "your_cost": "$25", 
-    "insurance_pays": "$95",
-    "savings_per_visit": "$95",
-    "potential_annual_savings": "$1,520"
-  }
-};
-
 // Call the analysis API
 async function callAnalysisAPI(websiteData) {
   try {
@@ -71,20 +29,54 @@ async function callAnalysisAPI(websiteData) {
     
   } catch (error) {
     console.error('API call failed, using dummy data:', error);
-    
-    // Customize dummy response based on website data
-    const customDummy = { ...DUMMY_API_RESPONSE };
-    
-    // Try to extract service name from scraped data
-    const services = websiteData.content_chunks?.find(chunk => chunk.type === 'services')?.data || [];
-    const firstService = services[0] || 'Health Service';
-    
-    // Update service name in response
-    customDummy.benefits_services.service_name = firstService;
-    customDummy.summary = `Good news! Your insurance may cover ${firstService.toLowerCase()} under your health benefits. Here's what we found based on typical coverage patterns.`;
-    
-    return customDummy;
+    // Return dummy data for development
+    return getDummyApiResponse(websiteData);
   }
+}
+
+// Dummy API response for development/fallback
+function getDummyApiResponse(websiteData) {
+  const siteName = websiteData.basic_info?.title || 'Health Service Provider';
+  const domain = websiteData.basic_info?.domain || 'example.com';
+  
+  return {
+    summary: `Analysis of ${siteName} shows potential insurance coverage for various health and wellness services. This provider offers services that may be partially or fully covered under different insurance plans.`,
+    
+    match_checklist: [
+      { item: "Provider is in-network with major insurers", status: "✅ covered", details: "Verified with Aetna, BCBS, UnitedHealth" },
+      { item: "Services qualify for HSA/FSA reimbursement", status: "⚠️ partial", details: "Physical therapy and medical massage covered" },
+      { item: "Prior authorization required", status: "📋 required", details: "Submit PA form 48 hours before appointment" },
+      { item: "Copay applies", status: "✅ covered", details: "$25 copay for in-network services" }
+    ],
+    
+    feasibility: {
+      score: 85,
+      color: "Green",
+      message: "High likelihood of coverage approval. Provider meets network requirements."
+    },
+    
+    money_saved: {
+      session_cost: "$150",
+      your_cost: "$25",
+      insurance_pays: "$125",
+      savings_per_visit: "$125",
+      potential_annual_savings: "$1,500"
+    },
+    
+    benefits_services: {
+      service_name: "Physical Therapy & Wellness Services",
+      coverage_type: "80% after deductible",
+      copay: "$25 per visit",
+      renewal_date: "January 1, 2027"
+    },
+
+    recommendations: [
+        "Based on the analysis, we recommend scheduling an appointment with this provider for your physical therapy needs. Ensure you submit the prior authorization form at least 48 hours before your visit to maximize insurance coverage."
+    ],
+    
+    // Include the scraped data for debugging
+    scraped_data: websiteData
+  };
 }
 
 // Handle messages from content script
@@ -136,28 +128,20 @@ async function handleWebsiteAnalysis(websiteData, tabId) {
     
     console.log('Analysis result stored:', analysisResult);
     
-    // Try to open side panel if we have a tab ID
-    if (tabId) {
-      try {
-        await chrome.sidePanel.setOptions({
-          tabId: tabId,
-          path: 'sidepanel.html',
-          enabled: true
-        });
-        
-        await chrome.sidePanel.open({ tabId: tabId });
-        console.log('Side panel opened successfully');
-        
-      } catch (sidePanelError) {
-        console.error('Failed to open side panel:', sidePanelError);
-        // Side panel might not be available, that's okay for development
-      }
-    }
-    
     return analysisResult;
     
   } catch (error) {
     console.error('Error in handleWebsiteAnalysis:', error);
+    
+    // Store error state for side panel to handle
+    await chrome.storage.local.set({
+      'analysisError': {
+        message: error.message,
+        timestamp: new Date().toISOString(),
+        url: websiteData.basic_info?.url
+      }
+    });
+    
     throw error;
   }
 }

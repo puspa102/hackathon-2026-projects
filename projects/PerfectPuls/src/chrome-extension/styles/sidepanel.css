@@ -299,6 +299,37 @@ body {
   color: #9ca3af;
 }
 
+/* Recommendations */
+.recommendation-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f0f9ff;
+  border-left: 3px solid #2563eb;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.recommendation-icon {
+  margin-right: 8px;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+.recommendation-text {
+  flex: 1;
+  color: #374151;
+}
+
+.no-recommendations {
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+  padding: 16px;
+}
+
 /* Action Section */
 .action-section {
   padding: 16px 0;
@@ -375,4 +406,60 @@ body {
   border-top: 2px solid #ffffff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+/* Debug Container */
+.debug-card {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  border-left: 4px solid #f59e0b;
+}
+
+.debug-card h3 {
+  color: #92400e;
+  justify-content: space-between;
+}
+
+.toggle-debug {
+  background: none;
+  border: none;
+  color: #92400e;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.toggle-debug:hover {
+  background: rgba(146, 64, 14, 0.1);
+}
+
+.debug-content {
+  margin-top: 12px;
+}
+
+.debug-section {
+  margin-bottom: 16px;
+}
+
+.debug-section h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 4px;
+}
+
+.debug-section pre {
+  background: #fff;
+  border: 1px solid #fbbf24;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #1f2937;
+  max-height: 150px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }

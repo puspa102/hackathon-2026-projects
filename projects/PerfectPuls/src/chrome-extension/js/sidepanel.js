@@ -15,6 +15,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const resultsEl = document.getElementById('results');
   const clearBtn = document.getElementById('clear-btn');
   const analyzeBtn = document.getElementById('analyze-btn');
+  const debugCard = document.getElementById('debug-card');
+  const debugContent = document.getElementById('debug-content');
+  const toggleDebugBtn = document.getElementById('toggle-debug');
+  const debugBasic = document.getElementById('debug-basic');
+  const debugContentText = document.getElementById('debug-content-text');
   
   // Verify elements exist
   console.log('Elements found:', {
@@ -22,7 +27,11 @@ document.addEventListener('DOMContentLoaded', function() {
     noData: !!noDataEl,
     results: !!resultsEl,
     clearBtn: !!clearBtn,
-    analyzeBtn: !!analyzeBtn
+    analyzeBtn: !!analyzeBtn,
+    debugCard: !!debugCard,
+    debugContent: !!debugContent,
+    toggleDebugBtn: !!toggleDebugBtn,
+    debugContentText: !!debugContentText
   });
   
   // Store globally for other functions
@@ -31,7 +40,12 @@ document.addEventListener('DOMContentLoaded', function() {
     noDataEl,
     resultsEl,
     clearBtn,
-    analyzeBtn
+    analyzeBtn,
+    debugCard,
+    debugContent,
+    toggleDebugBtn,
+    debugBasic,
+    debugContentText
   };
   
   // Set up event listeners
@@ -166,6 +180,20 @@ function displayResults() {
     </div>
   `;
 
+  // Recommendations
+  const recommendationDetails = document.getElementById('recommendation-details');
+  const recommendations = analysisResult.recommendations || [];
+  if (recommendations.length > 0) {
+    recommendationDetails.innerHTML = recommendations.map(rec => `
+      <div class="recommendation-item">
+        <span class="recommendation-icon">💡</span>
+        <span class="recommendation-text">${rec}</span>
+      </div>
+    `).join('');
+  } else {
+    recommendationDetails.innerHTML = '<div class="no-recommendations">No specific recommendations available.</div>';
+  }
+
   showResults();
 }
 
@@ -182,8 +210,35 @@ function showLoading() {
 
 function showNoData() {
   const { noDataEl, resultsEl } = window.policyPilotElements || {};
-  if (noDataEl) noDataEl.style.display = 'block';
-  if (resultsEl) resultsEl.style.display = 'none';
+  
+  if (noDataEl) {
+    // Reset to original content
+    noDataEl.innerHTML = `
+      <div class="icon-large">🏥</div>
+      <h2>Policy Pilot</h2>
+      <p>Visit a health or wellness website and analyze your coverage.</p>
+      <button id="analyze-btn" class="analyze-button" disabled>
+        🏥 Analyze Current Page
+      </button>
+      <div class="tip">
+        <strong>Tip:</strong> Look for services like acupuncture, massage, physical therapy, or gym memberships.
+      </div>
+    `;
+    
+    // Re-bind the analyze button since we replaced the HTML
+    const newAnalyzeBtn = document.getElementById('analyze-btn');
+    if (newAnalyzeBtn) {
+      window.policyPilotElements.analyzeBtn = newAnalyzeBtn;
+      newAnalyzeBtn.addEventListener('click', analyzeCurrentWebsite);
+      updateAnalyzeButton(); // Update button state based on current website info
+    }
+    
+    noDataEl.style.display = 'block';
+  }
+  
+  if (resultsEl) {
+    resultsEl.style.display = 'none';
+  }
 }
 
 function showResults() {
@@ -246,6 +301,9 @@ function analyzeCurrentWebsite() {
         }
         
         if (response?.success) {
+          // Show debug data
+          showDebugData(response.data);
+          
           // Send scraped data to background for analysis
           chrome.runtime.sendMessage({
             action: 'analyze-website',
@@ -255,7 +313,7 @@ function analyzeCurrentWebsite() {
               console.error('Analysis message error:', chrome.runtime.lastError);
               resetAnalyzeButton();
               hideLoading();
-              showNoData();
+              showApiErrorWithDebug(); // Keep debug data visible
             }
             // Result will be handled by storage listener
           });
@@ -283,12 +341,111 @@ function resetAnalyzeButton() {
   }
 }
 
+// Show scraped data in debug container
+function showDebugData(scrapedData) {
+  const { debugCard, debugBasic, debugContentText, debugContent, toggleDebugBtn } = window.policyPilotElements || {};
+  
+  if (debugCard && debugBasic && debugContentText) {
+    // Show the debug card
+    debugCard.style.display = 'block';
+    
+    // Auto-expand the debug container
+    if (debugContent && toggleDebugBtn) {
+      debugContent.style.display = 'block';
+      toggleDebugBtn.textContent = '[Hide]';
+    }
+    
+    // Display basic info
+    debugBasic.textContent = JSON.stringify(scrapedData.basic_info, null, 2);
+    
+    // Display page content (first 1000 chars for readability)
+    const pageContent = scrapedData.page_content || '';
+    const truncatedContent = pageContent.length > 1000 ? 
+      pageContent.substring(0, 1000) + '\n\n... (content truncated)' : 
+      pageContent;
+    debugContentText.textContent = truncatedContent;
+    
+    console.log('Debug data displayed:', scrapedData);
+  }
+}
+
+// Toggle debug container visibility
+function toggleDebugContainer() {
+  const { debugContent, toggleDebugBtn } = window.policyPilotElements || {};
+  
+  if (debugContent && toggleDebugBtn) {
+    const isVisible = debugContent.style.display !== 'none';
+    debugContent.style.display = isVisible ? 'none' : 'block';
+    toggleDebugBtn.textContent = isVisible ? '[Show]' : '[Hide]';
+  }
+}
+
+// Show API error message while keeping debug data visible
+function showApiErrorWithDebug() {
+  const { noDataEl, resultsEl, debugCard } = window.policyPilotElements || {};
+  
+  // Hide the no-data section first
+  if (noDataEl) {
+    noDataEl.style.display = 'none';
+  }
+  
+  // Show results container with debug data
+  if (resultsEl) {
+    resultsEl.style.display = 'block';
+    
+    // Add error message to top of results
+    const existingError = resultsEl.querySelector('.api-error-message');
+    if (existingError) {
+      existingError.remove();
+    }
+    
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'api-error-message card';
+    errorDiv.style.background = '#fef2f2';
+    errorDiv.style.borderColor = '#fca5a5';
+    errorDiv.style.borderLeft = '4px solid #ef4444';
+    errorDiv.innerHTML = `
+      <h3 style="color: #dc2626;"><span class="icon">⚠️</span> API Connection Failed</h3>
+      <p style="color: #dc2626; margin-bottom: 8px;">Could not connect to Graph RAG backend at localhost:8000</p>
+      <p style="color: #374151; font-size: 14px;"><strong>Scraping successful!</strong> Debug data shown below.</p>
+    `;
+    
+    resultsEl.insertBefore(errorDiv, resultsEl.firstChild);
+  }
+}
+
+// Show API error message
+function showApiError() {
+  const { noDataEl } = window.policyPilotElements || {};
+  
+  if (noDataEl) {
+    noDataEl.innerHTML = `
+      <div class="icon-large">⚠️</div>
+      <h2>API Connection Failed</h2>
+      <p>Could not connect to the Graph RAG backend at localhost:8000</p>
+      <p><strong>Scraping successful!</strong> Check the debug data below to see what was extracted.</p>
+      <div class="tip">
+        <strong>Note:</strong> The scraped data is shown in the debug container for development purposes.
+      </div>
+    `;
+    noDataEl.style.display = 'block';
+  }
+}
+
 // Clear analysis
 function clearAnalysis() {
+  const { debugCard } = window.policyPilotElements || {};
+  
   chrome.storage.local.clear().then(() => {
     analysisResult = null;
     lastAnalysis = null;
     currentWebsiteInfo = null;
+    
+    // Hide debug container
+    if (debugCard) {
+      debugCard.style.display = 'none';
+    }
+    
     showNoData();
     hideLoading();
     updateAnalyzeButton();
@@ -308,11 +465,19 @@ chrome.storage.onChanged.addListener((changes) => {
     currentWebsiteInfo = changes.currentWebsiteInfo.newValue;
     updateAnalyzeButton();
   }
+  if (changes.analysisError) {
+    console.error('Analysis error received:', changes.analysisError.newValue);
+    resetAnalyzeButton();
+    hideLoading();
+    
+    // Show both error message AND debug data
+    showApiErrorWithDebug();
+  }
 });
 
 // Event listeners - set up after DOM is ready
 function setupEventListeners() {
-  const { clearBtn, analyzeBtn } = window.policyPilotElements || {};
+  const { clearBtn, analyzeBtn, toggleDebugBtn } = window.policyPilotElements || {};
   
   if (clearBtn) {
     clearBtn.addEventListener('click', clearAnalysis);
@@ -320,6 +485,10 @@ function setupEventListeners() {
   
   if (analyzeBtn) {
     analyzeBtn.addEventListener('click', analyzeCurrentWebsite);
+  }
+  
+  if (toggleDebugBtn) {
+    toggleDebugBtn.addEventListener('click', toggleDebugContainer);
   }
   
   console.log('Event listeners set up');
