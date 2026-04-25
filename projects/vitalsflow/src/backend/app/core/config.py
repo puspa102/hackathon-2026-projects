@@ -6,7 +6,12 @@ class Settings(BaseSettings):
 
     # Gemini
     gemini_api_key: str | None = None
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "models/gemini-2.0-flash"
+
+    # Groq (LLM fallback provider)
+    groq_api_key: str | None = None
+    groq_model: str = "llama-3.3-70b-versatile"
+
     use_llm: bool = True
 
     # FHIR
@@ -21,6 +26,6 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = "INFO"
 
-
+ 
 settings = Settings()
 
