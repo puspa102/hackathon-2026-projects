@@ -13,7 +13,7 @@ const DISEASE_MAP = {
   "OPV-3": "Polio",
   "HepB-3": "Hepatitis B",
   "Measles-1": "Measles",
-  MMR: "Measles / Mumps / Rubella",
+  "MMR": "Measles / Mumps / Rubella",
 };
 
 function riskLevel(pct) {
@@ -44,7 +44,8 @@ export default function DistrictPanel({ record, year }) {
 
   useEffect(() => {
     if (!record?.district) return;
-    fetch(`/api/coverage/${record.district}/history/`)
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+    fetch(`${BASE_URL}/api/coverage/${record.district}/history/`)
       .then((r) => r.json())
       .then(setHistory)
       .catch(() => setHistory([]));
@@ -59,7 +60,8 @@ export default function DistrictPanel({ record, year }) {
     );
   }
 
-  const vax = record.vaccine_breakdown || {};
+  const currentDetail = history.find((h) => h.year === year) || record;
+  const vax = currentDetail.vaccine_breakdown || {};
   const chartData = VAX_KEYS.map((k, i) => ({
     name: k,
     value: vax[k] ?? 0,

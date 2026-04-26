@@ -15,7 +15,8 @@ export default function CommunityDashboard() {
 
   // Fetch available years on mount
   useEffect(() => {
-    fetch("/api/coverage/years/")
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+    fetch(`${BASE_URL}/api/coverage/years/`)
       .then((r) => r.json())
       .then((years) => {
         if (years.length) {
