@@ -90,12 +90,12 @@ App runs at: http://localhost:3000
 
 **Team TriageTech** — Hackathon 2025
 
-| Role | Contribution |
-|---|---|
-| Backend | FastAPI triage engine, Nepali NLP, clinic API |
-| Frontend | React PWA, bilingual UI, Leaflet maps |
-| AI/ML | Rule engine design, bias audit, responsible AI |
-| Docs | Architecture, clinical references, API spec |
+| Role | Name | Contribution |
+|---|---|---|
+| Lead / Backend | **Sonam Acharya** | FastAPI triage engine, Nepali NLP, clinic API |
+| Frontend Dev | **Dammaru Ballav Koirala** | React PWA, bilingual UI, Leaflet maps |
+| AI/ML Lead | **Akash Dhimal** | Rule engine design, bias audit, responsible AI |
+| UX / Docs | **Aaska Ghimere** | Architecture, clinical references, API spec |
 
 ---
 
