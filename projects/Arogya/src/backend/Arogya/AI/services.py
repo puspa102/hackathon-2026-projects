@@ -28,7 +28,7 @@ def analyze_report_with_groq(text):
     Note: This is an information extraction tool, not a medical diagnosis.
     """
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-    model = "llama-3.1-8b-instant"
+    model = "llama-3.3-70b-versatile"
 
     prompt = f"""
     You are CareLoop, a soft, caring, and gentle recovery companion. 
@@ -80,10 +80,10 @@ def analyze_report_with_groq(text):
 
 def analyze_image_report_with_groq(image_file):
     """
-    Uses Groq's vision model to extract structured data from an image of a medical report.
+    Uses Groq's Llama 4 vision model to extract structured data from an image of a medical report.
     """
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-    model = "llama-3.2-11b-vision-preview"
+    model = "meta-llama/llama-4-scout-17b-16e-instruct"
 
     # Read and encode image
     image_content = image_file.read()
@@ -141,7 +141,7 @@ def analyze_symptoms_with_groq(payload):
     Analyzes patient symptoms using Groq and returns structured classification.
     """
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-    model = "llama-3.1-8b-instant"
+    model = "llama-3.3-70b-versatile"
 
     # Inject context into prompt
     other_symptoms = payload.get('other_symptoms') or []
@@ -181,7 +181,7 @@ def chat_with_groq(messages, patient_context=None):
     Handles ongoing recovery chat using Groq.
     """
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-    model = "llama-3.1-8b-instant"
+    model = "llama-3.3-70b-versatile"
 
     system_content = CHAT_SYSTEM_PROMPT
     if patient_context:
