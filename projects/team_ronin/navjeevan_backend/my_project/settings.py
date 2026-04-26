@@ -133,7 +133,7 @@ from datetime import timedelta
 # Rest setup
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'user.authentication.DualUserJWTAuthentication',
     ),
 }
 

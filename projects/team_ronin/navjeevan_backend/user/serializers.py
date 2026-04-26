@@ -1,6 +1,4 @@
 import re
-import string
-import random
 
 from rest_framework import serializers
 from django.core.validators import validate_email
@@ -100,8 +98,6 @@ class NormalUserRegisterSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value: str) -> str:
         value = validate_email_address(value)
-        if NormalUser.objects.filter(email=value).exists():
-            raise serializers.ValidationError("An account with this email already exists.")
         return value
 
     def validate_name(self, value: str) -> str:
@@ -239,39 +235,68 @@ class AdminCreateMedicalPersonnelSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value: str) -> str:
         value = validate_email_address(value)
-        if MedicalPersonnel.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A medical personnel with this email already exists.")
         return value
 
     def create(self, validated_data):
         import uuid as _uuid
         user_uuid = _uuid.uuid4()
-        login_id  = generate_login_id(validated_data['name'], user_uuid)
+        login_id = generate_login_id(validated_data['name'], user_uuid)
 
-        # Generate a strong temporary password
-        alphabet = string.ascii_letters + string.digits + '!@#$%^&*()'
-        temp_password = ''.join(random.choices(alphabet, k=12))
-        # Ensure it passes our own strength rules
-        temp_password = (
-            random.choice(string.ascii_uppercase)
-            + random.choice(string.ascii_lowercase)
-            + random.choice(string.digits)
-            + random.choice('!@#$%^&*()')
-            + ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-        )
-
+        # Initial profile is inactive and unverified until activation.
         user = MedicalPersonnel(
             uuid=user_uuid,
             login_id=login_id,
-            is_verified=True,
-            status='active',
+            is_verified=False,
+            status='inactive',
             **validated_data,
         )
-        user.set_password(temp_password)
+        user.set_unusable_password()
         user.save()
+        return user
 
-        # Attach temp_password so the view can include it in the email
-        user._temp_password = temp_password
+
+# ---------------------------------------------------------------------------
+# Medical Personnel: Activation
+# ---------------------------------------------------------------------------
+
+class MedicalPersonnelActivationSerializer(serializers.Serializer):
+    """
+    Accepts login_id + password + confirm_password from medical personnel.
+    Validates that:
+      - login_id belongs to an existing, unverified MedicalPersonnel
+      - password meets all strength rules
+      - passwords match
+    Sets the password, marks verified and active, returns the user.
+    """
+    login_id = serializers.CharField(max_length=20)
+    password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_login_id(self, value: str) -> str:
+        value = value.strip().upper()
+        try:
+            user = MedicalPersonnel.objects.get(login_id=value)
+        except MedicalPersonnel.DoesNotExist:
+            raise serializers.ValidationError("No medical personnel account found with this Login ID.")
+
+        if user.is_verified and user.status == 'active':
+            raise serializers.ValidationError("This medical personnel account is already activated.")
+
+        return value
+
+    def validate(self, data):
+        if data.get('password') != data.get('confirm_password'):
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        PasswordValidator.validate(data['password'])
+        return data
+
+    def activate(self) -> MedicalPersonnel:
+        """Call after is_valid(). Sets password, marks verified and active, returns user."""
+        user = MedicalPersonnel.objects.get(login_id=self.validated_data['login_id'])
+        user.set_password(self.validated_data['password'])
+        user.is_verified = True
+        user.status = 'active'
+        user.save(update_fields=['password', 'is_verified', 'status'])
         return user
 
 
@@ -296,13 +321,18 @@ class LoginSerializer(serializers.Serializer):
         if not user or not user.check_password(password):
             raise serializers.ValidationError("Invalid Login ID or password.")
 
-        if user.status == 'inactive':
-            raise serializers.ValidationError("This account is inactive.")
-
         if user.user_type == 'normal' and not user.is_verified:
             raise serializers.ValidationError(
                 "Account not activated. Please complete Step 2 using the Login ID sent to your email."
             )
+
+        if user.user_type == 'medical' and not user.is_verified:
+            raise serializers.ValidationError(
+                "Medical personnel account not activated. Please activate using your Login ID."
+            )
+
+        if user.status == 'inactive':
+            raise serializers.ValidationError("This account is inactive.")
 
         data['user'] = user
         return data

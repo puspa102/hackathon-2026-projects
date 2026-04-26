@@ -104,7 +104,7 @@ class BaseUser(AbstractUser):
                         max_length=20, unique=True,
                         help_text="Auto-generated: NAME-UUID (e.g. JOHN-A1B2)")
     name          = models.CharField(max_length=255)
-    email         = models.EmailField(unique=True)
+    email         = models.EmailField()
     phone_number  = models.CharField(
                         max_length=20,
                         validators=[RegexValidator(

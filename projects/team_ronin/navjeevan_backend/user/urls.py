@@ -35,10 +35,14 @@ urlpatterns = [
          NormalUserViewSet.as_view({'post': 'deactivate_account'}),
          name='user-deactivate'),
 
-    # ── Medical Personnel (superadmin only) ──────────────────────────────────
+    # ── Medical Personnel (superadmin only, except activation) ─────────────────
     path('medical/create/',
          MedicalPersonnelViewSet.as_view({'post': 'create_personnel'}),
          name='medical-create'),
+
+    path('medical/activate/',
+         MedicalPersonnelViewSet.as_view({'post': 'activate_personnel'}),
+         name='medical-activate'),
 
     path('medical/list/',
          MedicalPersonnelViewSet.as_view({'get': 'list_personnel'}),

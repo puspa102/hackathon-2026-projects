@@ -21,6 +21,7 @@ from .serializers import (
     NormalUserSerializer,
     MedicalPersonnelSerializer,
     AdminCreateMedicalPersonnelSerializer,
+    MedicalPersonnelActivationSerializer,
     LoginSerializer,
     PasswordChangeSerializer,
     ProfileUpdateSerializer,
@@ -42,7 +43,7 @@ def _profile_serializer(user):
     return MedicalPersonnelSerializer(user)
 
 
-def _send_login_id_email(user: NormalUser) -> None:
+def _send_login_id_email(user) -> None:
     """
     Email the generated login_id to the user after Step 1 registration.
     The user needs this login_id to complete Step 2 activation.
@@ -333,11 +334,11 @@ class NormalUserViewSet(GenericViewSet):
 
 class MedicalPersonnelViewSet(GenericViewSet):
     """
-    All actions require the caller to be a superuser.
-    POST  /medical/create/
-    GET   /medical/list/
-    GET   /medical/retrieve/?uuid=<uuid>
-    PATCH /medical/update/?uuid=<uuid>
+    POST  /medical/create/            — superadmin only, creates inactive profile
+    POST  /medical/activate/          — public, activates account with login_id + password
+    GET   /medical/list/              — superadmin only
+    GET   /medical/retrieve/?uuid=<uuid> — superadmin only
+    PATCH /medical/update/?uuid=<uuid>  — superadmin only
     """
     queryset           = MedicalPersonnel.objects.all()
     serializer_class   = MedicalPersonnelSerializer
@@ -350,6 +351,11 @@ class MedicalPersonnelViewSet(GenericViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         return None
+
+    def get_permissions(self):
+        if self.action == 'activate_personnel':
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     # ── Create ───────────────────────────────────────────────────────────────
     @swagger_auto_schema(
@@ -372,13 +378,30 @@ class MedicalPersonnelViewSet(GenericViewSet):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # TODO: email user._temp_password to user.email via Django email backend
+        try:
+            _send_login_id_email(user)
+        except Exception:
+            # Account was created — delete it so the superadmin can retry cleanly.
+            user.delete()
+            return Response(
+                {
+                    'error': (
+                        'Medical personnel profile creation failed: '
+                        'we could not send the Login ID email. Please check the email address and try again.'
+                    )
+                },
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
         return Response(
             {
-                'message':  'Medical personnel created successfully.',
-                'user':     MedicalPersonnelSerializer(user).data,
-                'login_id': user.login_id,
-                'note':     'Temporary credentials have been sent to the provided email.',
+                'message': (
+                    'Medical personnel profile created and activated for setup. '
+                    f'Login ID has been sent to {user.email}. '
+                    'Account is inactive until the personnel activates it with their password.'
+                ),
+                'user': MedicalPersonnelSerializer(user).data,
+                'login_id': user.login_id if settings.DEBUG else None,
             },
             status=status.HTTP_201_CREATED,
         )
@@ -432,6 +455,40 @@ class MedicalPersonnelViewSet(GenericViewSet):
             )
         personnel = get_object_or_404(MedicalPersonnel, uuid=personnel_uuid)
         return Response(MedicalPersonnelSerializer(personnel).data)
+
+    # ── Activate ─────────────────────────────────────────────────────────────
+    @swagger_auto_schema(
+        operation_summary="Activate medical personnel account",
+        operation_description=(
+            "Public endpoint. Medical personnel submits login_id, password, confirm_password. "
+            "Sets password, marks verified and active, returns JWT tokens."
+        ),
+        request_body=MedicalPersonnelActivationSerializer,
+        responses={
+            200: openapi.Response("Account activated — JWT tokens returned", MedicalPersonnelSerializer),
+            400: "Validation error (bad login_id, password mismatch, weak password)",
+        },
+        tags=["Medical Personnel"],
+    )
+    @action(detail=False, methods=['post'])
+    def activate_personnel(self, request):
+        """
+        Submit: login_id, password, confirm_password
+        Validates login_id + password strength, sets password, marks account verified and active.
+        Returns JWT tokens so the frontend can redirect straight into the app.
+        """
+        serializer = MedicalPersonnelActivationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.activate()
+
+        return Response(
+            {
+                'message': 'Medical personnel account activated successfully.',
+                'user': MedicalPersonnelSerializer(user).data,
+                'tokens': _jwt_tokens(user),
+            },
+            status=status.HTTP_200_OK,
+        )
 
     # ── Update ───────────────────────────────────────────────────────────────
     @swagger_auto_schema(
