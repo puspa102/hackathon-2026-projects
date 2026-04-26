@@ -21,6 +21,7 @@ import TherapyLibrary from './pages/patient/TherapyLibrary'
 import MySessions from './pages/patient/MySessions'
 import Progress from './pages/patient/Progress'
 import Feedback from './pages/patient/Feedback'
+import JoinConnection from './pages/patient/JoinConnection'
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<AuthPage initialMode="login" />} />
       <Route path="/register" element={<AuthPage initialMode="register" />} />
+      <Route path="/join/:token" element={<JoinConnection />} />
       
       {/* Internal Dashboard Routes */}
       <Route element={<DashboardLayout />}>

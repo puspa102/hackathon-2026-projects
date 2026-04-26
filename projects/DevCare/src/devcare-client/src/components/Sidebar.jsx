@@ -35,7 +35,7 @@ function Sidebar() {
     { label: 'Clinical Directory', href: '/doctor/patients', icon: Users },
     { label: 'Assign Therapy', href: '/doctor/assign', icon: ClipboardList },
     { label: 'Performance Review', href: '/doctor/feedback', icon: MessageSquareMore },
-    { label: 'Clinic Connect', href: '/doctor/share', icon: UserPlus },
+    { label: 'Connect Patient', href: '/doctor/share', icon: UserPlus },
   ]
 
   const patientLinks = [
