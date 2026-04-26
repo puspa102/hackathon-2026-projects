@@ -34,11 +34,6 @@ function Sidebar() {
     { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard },
     { label: "Patient List", href: "/doctor/patients", icon: Users },
     { label: "Assign Therapy", href: "/doctor/assign", icon: ClipboardList },
-    {
-      label: "Review",
-      href: "/doctor/feedback",
-      icon: MessageSquareMore,
-    },
     { label: "Connect Patient", href: "/doctor/share", icon: UserPlus },
   ];
 
@@ -67,10 +62,9 @@ function Sidebar() {
                 key={link.href}
                 to={link.href}
                 className={({ isActive }) =>
-                  `group flex items-center justify-between rounded-xl px-4 py-4 text-base font-medium transition-all ${
-                    isActive
-                      ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)] shadow-sm"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-[var(--color-secondary)]"
+                  `group flex items-center justify-between rounded-xl px-4 py-4 text-base font-medium transition-all ${isActive
+                    ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)] shadow-sm"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-[var(--color-secondary)]"
                   }`
                 }
               >

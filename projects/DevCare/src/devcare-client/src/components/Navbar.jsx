@@ -50,7 +50,6 @@ function Navbar() {
         { label: 'Dashboard', href: '/doctor/dashboard' },
         { label: 'Patients', href: '/doctor/patients' },
         { label: 'Assign', href: '/doctor/assign' },
-        { label: 'Feedback', href: '/doctor/feedback' },
         { label: 'Connect', href: '/doctor/share' },
       ]
     } else if (role === 'patient') {
@@ -97,41 +96,41 @@ function Navbar() {
           ))}
         </ul>
 
-          {isAuthenticated ? (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                className="flex items-center gap-2 focus:outline-none"
-                onClick={() => setDropdownOpen((open) => !open)}
-              >
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-                  alt="Profile"
-                  className="w-9 h-9 rounded-full border-2 border-[var(--color-primary)] bg-white"
-                />
-                <span className="font-semibold text-base hidden sm:inline">{username || 'User'}</span>
-                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-              </button>
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg bg-white border border-[var(--color-border)] z-50">
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-surface-soft)] rounded-lg"
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-5">
-              <Link to="/login" className="nav-link font-semibold">
-                Login
-              </Link>
-              <Link to="/register" className="btn-primary px-5 py-2">
-                Register
-              </Link>
-            </div>
-          )}
+        {isAuthenticated ? (
+          <div className="relative" ref={dropdownRef}>
+            <button
+              className="flex items-center gap-2 focus:outline-none"
+              onClick={() => setDropdownOpen((open) => !open)}
+            >
+              <img
+                src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
+                alt="Profile"
+                className="w-9 h-9 rounded-full border-2 border-[var(--color-primary)] bg-white"
+              />
+              <span className="font-semibold text-base hidden sm:inline">{username || 'User'}</span>
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg bg-white border border-[var(--color-border)] z-50">
+                <button
+                  onClick={handleLogout}
+                  className="block w-full text-left px-4 py-2 text-sm text-[var(--color-danger)] hover:bg-[var(--color-surface-soft)] rounded-lg"
+                >
+                  Logout
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-5">
+            <Link to="/login" className="nav-link font-semibold">
+              Login
+            </Link>
+            <Link to="/register" className="btn-primary px-5 py-2">
+              Register
+            </Link>
+          </div>
+        )}
       </nav>
     </header>
   )

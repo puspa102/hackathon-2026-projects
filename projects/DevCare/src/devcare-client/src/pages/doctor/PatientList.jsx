@@ -18,7 +18,7 @@ function PatientList() {
     const fetchPatientsWithStatus = async () => {
       try {
         const data = await getMyPatients()
-        
+
         const patientsWithStatus = await Promise.all(data.map(async (p) => {
           let hasPendingReview = false;
           try {
@@ -39,7 +39,7 @@ function PatientList() {
             isReal: true
           }
         }))
-        
+
         setPatients(patientsWithStatus)
       } catch (err) {
         console.error(err)
@@ -54,21 +54,19 @@ function PatientList() {
 
   const getStatusStyle = (status) => {
     switch (status) {
-      case 'Falling Behind': return 'bg-red-50 text-red-600 border-red-100'
       case 'Pending Review': return 'bg-amber-50 text-amber-600 border-amber-100'
       case 'Reviewed': return 'bg-emerald-50 text-emerald-600 border-emerald-100'
-      case 'On Track': return 'bg-emerald-50 text-emerald-600 border-emerald-100'
       default: return 'bg-slate-50 text-slate-600 border-slate-100'
     }
   }
 
   const filteredPatients = patients.filter(patient => {
-    const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          patient.condition.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          patient.id.toString().includes(searchQuery);
-    
+    const matchesSearch = patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patient.condition.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      patient.id.toString().includes(searchQuery);
+
     const matchesFilter = filterStatus === 'All' || patient.status === filterStatus;
-    
+
     return matchesSearch && matchesFilter;
   });
 
@@ -83,7 +81,7 @@ function PatientList() {
           <h1 className="text-4xl font-extrabold tracking-tight">Patient List</h1>
           <p className="text-[var(--color-text-muted)] mt-2 text-lg font-medium">Manage and monitor all your connected patients.</p>
         </div>
-        <PatientFilterBar 
+        <PatientFilterBar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           filterStatus={filterStatus}
@@ -113,43 +111,43 @@ function PatientList() {
                 {filteredPatients.length > 0 ? (
                   filteredPatients.map(patient => (
                     <tr key={patient.id} className="hover:bg-slate-50/30 transition-all group">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-4">
-                        <div className={`h-11 w-11 rounded-2xl flex items-center justify-center font-bold transition-colors ${patient.isReal ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]' : 'bg-slate-100 text-slate-600'}`}>
-                          {patient.name.split(' ').map(n => n[0]).join('')}
+                      <td className="px-8 py-6">
+                        <div className="flex items-center gap-4">
+                          <div className={`h-11 w-11 rounded-2xl flex items-center justify-center font-bold transition-colors ${patient.isReal ? 'bg-[var(--color-primary-soft)] text-[var(--color-primary)]' : 'bg-slate-100 text-slate-600'}`}>
+                            {patient.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <div>
+                            <span className="block font-bold text-slate-800">{patient.name}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {patient.isReal ? `DC-REAL-${patient.id}` : `DC-MOCK-${patient.id}`}</span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="block font-bold text-slate-800">{patient.name}</span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {patient.isReal ? `DC-REAL-${patient.id}` : `DC-MOCK-${patient.id}`}</span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className="text-sm font-semibold text-slate-600">{patient.condition}</span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className="text-sm font-medium text-slate-500">{patient.lastSeen}</span>
+                      </td>
+                      <td className="px-8 py-6">
+                        <span className={`inline-flex items-center rounded-lg border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(patient.status)}`}>
+                          {patient.status}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to={`/doctor/patient/${patient.id}`}
+                            className="btn-secondary py-2 px-4 text-xs h-9"
+                          >
+                            Manage
+                          </Link>
+                          <button className="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+                            <MoreHorizontal size={18} />
+                          </button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className="text-sm font-semibold text-slate-600">{patient.condition}</span>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className="text-sm font-medium text-slate-500">{patient.lastSeen}</span>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className={`inline-flex items-center rounded-lg border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${getStatusStyle(patient.status)}`}>
-                        {patient.status}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          to={`/doctor/patient/${patient.id}`}
-                          className="btn-secondary py-2 px-4 text-xs h-9"
-                        >
-                          Manage
-                        </Link>
-                        <button className="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
-                          <MoreHorizontal size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  ))
                 ) : (
                   <tr>
                     <td colSpan="5" className="px-8 py-12 text-center text-slate-500">
