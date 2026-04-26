@@ -16,8 +16,16 @@ class DischargeReportSerializer(serializers.ModelSerializer):
             "uploaded_at",
             "extracted_text",
             "status",
+            "verified_by",
+            "verified_at",
         ]
-        read_only_fields = ["id", "patient", "uploaded_at"]
+        read_only_fields = [
+            "id",
+            "patient",
+            "uploaded_at",
+            "verified_by",
+            "verified_at",
+        ]
 
     def validate_file(self, value):
         extension = os.path.splitext(value.name)[1].lower()
