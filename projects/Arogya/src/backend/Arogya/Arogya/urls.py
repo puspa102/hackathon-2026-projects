@@ -18,8 +18,17 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+
+def api_root(request):
+    return JsonResponse({
+        "message": "Welcome to Arogya API",
+        "version": "1.0.0",
+        "ai_endpoints": "/api/ai/"
+    })
 
 urlpatterns = [
+    path('', api_root),
     path('admin/', admin.site.urls),
     path("api/accounts/", include("accounts.urls")),
     path("api/reports/", include("reports.urls")),

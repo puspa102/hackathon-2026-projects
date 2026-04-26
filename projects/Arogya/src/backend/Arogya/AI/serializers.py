@@ -11,25 +11,28 @@ from rest_framework import serializers
 class SymptomAnalysisSerializer(serializers.Serializer):
     BREATHING_CHOICES = ["none", "mild", "severe"]
 
-    fever           = serializers.IntegerField(min_value=0, max_value=10)
-    pain_level      = serializers.IntegerField(min_value=0, max_value=10)
-    breathing       = serializers.ChoiceField(choices=BREATHING_CHOICES)
+    fever           = serializers.IntegerField(min_value=0, max_value=10, default=0, required=False, allow_null=True)
+    pain_level      = serializers.IntegerField(min_value=0, max_value=10, default=0, required=False, allow_null=True)
+    breathing       = serializers.ChoiceField(choices=BREATHING_CHOICES, default="none", required=False, allow_null=True)
     other_symptoms  = serializers.ListField(
                         child=serializers.CharField(max_length=100),
                         required=False,
-                        default=list
+                        default=list,
+                        allow_null=True
                       )
     notes           = serializers.CharField(
                         required=False,
                         allow_blank=True,
+                        allow_null=True,
                         default="",
                         max_length=1000
                       )
-    diagnosis       = serializers.CharField(required=False, default="unknown", max_length=300)
+    diagnosis       = serializers.CharField(required=False, default="unknown", max_length=300, allow_null=True)
     medicines       = serializers.ListField(
                         child=serializers.CharField(max_length=200),
                         required=False,
-                        default=list
+                        default=list,
+                        allow_null=True
                       )
 
 
