@@ -4,7 +4,7 @@ import {
   ResponsiveContainer, ReferenceLine, Cell,
 } from "recharts";
 import styles from "./DistrictPanel.module.css";
-import { fetchDistrictCoverageHistory } from "../../api/coverage";
+import { fetchDistrictCoverageHistory, fetchDistrictInsight } from "../../api/coverage";
 
 const VAX_KEYS = ["DPT-3", "Penta-3", "OPV-3", "HepB-3", "Measles-1", "MMR"];
 const VAX_COLORS = ["#9f84e8", "#1D9E75", "#D85A30", "#378ADD", "#BA7517", "#D4537E"];
@@ -42,6 +42,10 @@ const CustomBar = (props) => {
 
 export default function DistrictPanel({ record, year }) {
   const [history, setHistory] = useState([]);
+  const [question, setQuestion] = useState("");
+  const [insight, setInsight] = useState("");
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightError, setInsightError] = useState("");
 
   useEffect(() => {
     if (!record?.district) return;
@@ -49,6 +53,12 @@ export default function DistrictPanel({ record, year }) {
       .then(setHistory)
       .catch(() => setHistory([]));
   }, [record?.district]);
+
+  useEffect(() => {
+    setQuestion("");
+    setInsight("");
+    setInsightError("");
+  }, [record?.district, year]);
 
   if (!record) {
     return (
@@ -71,6 +81,40 @@ export default function DistrictPanel({ record, year }) {
     year: h.year,
     coverage: h.coverage_pct,
   }));
+
+  const askDefaultQuestion = async () => {
+    if (!record?.district) return;
+    const defaultQuestion = `Summarize ${record.district_name}'s vaccination status for ${year} and suggest practical interventions.`;
+    await submitQuestion(defaultQuestion);
+  };
+
+  const submitQuestion = async (text) => {
+    if (!record?.district) return;
+    const trimmed = (text || "").trim();
+    if (!trimmed) return;
+
+    setInsightLoading(true);
+    setInsightError("");
+    try {
+      const aiResponse = await fetchDistrictInsight({
+        districtId: record.district,
+        year,
+        question: trimmed,
+      });
+      setInsight(aiResponse);
+    } catch (error) {
+      setInsightError(
+        error?.response?.data?.detail ||
+        "Could not generate district insight right now. Please try again."
+      );
+    } finally {
+      setInsightLoading(false);
+    }
+  };
+
+  const handleAsk = async () => {
+    await submitQuestion(question);
+  };
 
   return (
     <div className={styles.panel}>
@@ -217,6 +261,40 @@ export default function DistrictPanel({ record, year }) {
           </div>
         </section>
       )}
+
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>AI district insight</h3>
+        <p className={styles.aiHint}>
+          Grounded on district records, national averages, and Nepal NIP schedule.
+        </p>
+        <div className={styles.aiActions}>
+          <button
+            type="button"
+            className={styles.aiButton}
+            onClick={askDefaultQuestion}
+            disabled={insightLoading}
+          >
+            {insightLoading ? "Analyzing..." : "Generate overview"}
+          </button>
+        </div>
+        <textarea
+          className={styles.aiInput}
+          placeholder="Ask a specific question (e.g., Why is MMR low and what should be done?)"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          rows={3}
+        />
+        <button
+          type="button"
+          className={styles.aiButton}
+          onClick={handleAsk}
+          disabled={insightLoading || !question.trim()}
+        >
+          {insightLoading ? "Thinking..." : "Ask AI"}
+        </button>
+        {insightError ? <p className={styles.aiError}>{insightError}</p> : null}
+        {insight ? <div className={styles.aiOutput}>{insight}</div> : null}
+      </section>
     </div>
   );
 }

@@ -180,10 +180,6 @@ export default function VaccinationHistoryView() {
             <Plus size={18} />
             Add Record
           </button>
-          <button className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-400 transition border border-blue-400/30">
-            <Download size={18} />
-            Export Card
-          </button>
         </div>
       </div>
 

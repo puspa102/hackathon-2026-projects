@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useLanguage } from '../../context/LanguageContext';
 import Sidebar from './sidebar/Sidebar';
 import DashboardView from './views/DashboardView';
 import VaccinationHistoryView from './views/VaccinationHistoryView';
 import ProgramsView from './views/ProgramsView';
 import NotificationsView from './views/NotificationsView';
 import ProfileView from './views/ProfileView';
+import AIAssistantView from './views/AIAssistantView';
+import LanguageToggle from '../common/LanguageToggle';
 
 export default function CitizenDashboard() {
   const { logout } = useAuth();
+  const { t } = useLanguage();
   const [activeView, setActiveView] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -25,6 +29,8 @@ export default function CitizenDashboard() {
         return <NotificationsView />;
       case 'profile':
         return <ProfileView />;
+      case 'ai-assistant':
+        return <AIAssistantView />;
       default:
         return <DashboardView />;
     }
@@ -58,12 +64,15 @@ export default function CitizenDashboard() {
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             <h1 className="text-2xl font-bold text-white">Navjeevan</h1>
-            <button
-              onClick={logout}
-              className="rounded-lg bg-emerald-500 px-4 py-2 font-semibold text-white hover:bg-emerald-400 transition"
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              <LanguageToggle />
+              <button
+                onClick={logout}
+                className="rounded-lg bg-emerald-500 px-4 py-2 font-semibold text-white hover:bg-emerald-400 transition"
+              >
+                {t('logout', 'Logout')}
+              </button>
+            </div>
           </div>
         </div>
 

@@ -21,6 +21,32 @@ class IndividualVaccinationRecordSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'vaccine_name', 'dose_number', 'date_administered', 'scheduled_date', 'status', 'district', 'administered_by', 'notes']
         read_only_fields = ['user']
 
+    def validate(self, attrs):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        vaccine_name = attrs.get('vaccine_name') or getattr(self.instance, 'vaccine_name', None)
+        dose_number = attrs.get('dose_number') or getattr(self.instance, 'dose_number', None)
+
+        if user and vaccine_name and dose_number:
+            duplicate_qs = IndividualVaccinationRecord.objects.filter(
+                user=user,
+                vaccine_name=vaccine_name,
+                dose_number=dose_number,
+            )
+            if self.instance:
+                duplicate_qs = duplicate_qs.exclude(pk=self.instance.pk)
+
+            if duplicate_qs.exists():
+                raise serializers.ValidationError(
+                    {
+                        'non_field_errors': [
+                            'This vaccine and dose already exists in your records. Edit the existing entry instead.'
+                        ]
+                    }
+                )
+
+        return attrs
+
     def to_internal_value(self, data):
         # If district is provided as a string that doesn't exist, 
         # we still want to allow the request to proceed (setting district to None)

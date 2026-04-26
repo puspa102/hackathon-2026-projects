@@ -1,4 +1,5 @@
 import logging
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -7,6 +8,7 @@ from rest_framework.exceptions import PermissionDenied
 
 from my_project.permissions import IsMedicalPersonnel, IsNormalUser
 from user.models import MedicalPersonnel, NormalUser
+from visualisation.models import IndividualVaccinationRecord
 
 from .models import Vaccination, Event, EventUser, UserNotification
 from .serializers import VaccinationSerializer, EventSerializer
@@ -188,6 +190,42 @@ class EventViewSet(GenericViewSet):
 			return Response(
 				{
 					'error': 'Failed to retrieve notifications',
+					'detail': 'An unexpected server error occurred.',
+				},
+				status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+			)
+
+	def dashboard_metrics(self, request):
+		"""Return healthcare dashboard aggregates from live database values."""
+		try:
+			if not isinstance(request.user, MedicalPersonnel):
+				raise PermissionDenied(detail='Only medical personnel can view dashboard metrics.')
+
+			total_citizens = NormalUser.objects.count()
+			upcoming_events = Event.objects.exclude(event_status='ENDED').count()
+			total_vaccine_history = IndividualVaccinationRecord.objects.count()
+			pending_follow_ups = IndividualVaccinationRecord.objects.filter(
+				Q(status='scheduled') | Q(status='missed')
+			).count()
+			completed_follow_ups = IndividualVaccinationRecord.objects.filter(status='completed').count()
+
+			return Response(
+				{
+					'total_citizens': total_citizens,
+					'upcoming_events': upcoming_events,
+					'total_vaccine_history': total_vaccine_history,
+					'pending_follow_ups': pending_follow_ups,
+					'completed_follow_ups': completed_follow_ups,
+				},
+				status=status.HTTP_200_OK,
+			)
+		except PermissionDenied as e:
+			return Response({'error': str(e.detail)}, status=status.HTTP_403_FORBIDDEN)
+		except Exception as e:
+			logger.error(f"Error loading dashboard metrics for {request.user}: {str(e)}", exc_info=True)
+			return Response(
+				{
+					'error': 'Failed to load dashboard metrics',
 					'detail': 'An unexpected server error occurred.',
 				},
 				status=status.HTTP_500_INTERNAL_SERVER_ERROR,

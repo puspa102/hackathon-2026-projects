@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchHealthcareUsers, registerHealthcareUser } from '../../../api/healthcareUsers';
 import { getDistricts } from '../../../api/districts';
-import { createProgram, createProgramVaccine, fetchPrograms, fetchProgramVaccines } from '../../../api/programs';
+import {
+  createProgram,
+  createProgramVaccine,
+  fetchHealthcareDashboardMetrics,
+  fetchPrograms,
+  fetchProgramVaccines,
+} from '../../../api/programs';
 import { useAuth } from '../../../hooks/useAuth';
 import HCDashboardSidebar from './HCDashboardSidebar';
 import HCDashboardTopbar from './HCDashboardTopbar';
@@ -48,6 +54,15 @@ export default function HCHealthcareDashboard() {
   const [vaccineLoadError, setVaccineLoadError] = useState('');
   const [programError, setProgramError] = useState('');
   const [programSuccess, setProgramSuccess] = useState('');
+  const [metrics, setMetrics] = useState({
+    totalCitizens: 0,
+    upcomingEvents: 0,
+    totalVaccineHistory: 0,
+    pendingFollowUps: 0,
+    completedFollowUps: 0,
+  });
+  const [isMetricsLoading, setIsMetricsLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState('');
 
   const displayName = user?.name || user?.full_name || user?.fullName || 'Healthcare Staff';
 
@@ -231,9 +246,35 @@ export default function HCHealthcareDashboard() {
     }
   };
 
+  const loadMetrics = async () => {
+    setIsMetricsLoading(true);
+    setMetricsError('');
+    try {
+      const response = await fetchHealthcareDashboardMetrics();
+      const data = response?.data || {};
+      setMetrics({
+        totalCitizens: Number(data.total_citizens || 0),
+        upcomingEvents: Number(data.upcoming_events || 0),
+        totalVaccineHistory: Number(data.total_vaccine_history || 0),
+        pendingFollowUps: Number(data.pending_follow_ups || 0),
+        completedFollowUps: Number(data.completed_follow_ups || 0),
+      });
+    } catch (error) {
+      const message =
+        error?.response?.data?.error ||
+        error?.response?.data?.detail ||
+        error?.message ||
+        'Could not load analytics metrics.';
+      setMetricsError(message);
+    } finally {
+      setIsMetricsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadCitizens();
     loadPrograms();
+    loadMetrics();
   }, []);
 
   const handleProgramSubmit = async (event) => {
@@ -477,7 +518,13 @@ export default function HCHealthcareDashboard() {
         return <HCMapSection />;
       case 'analytics':
       default:
-        return <HCAnalyticsSection />;
+        return (
+          <HCAnalyticsSection
+            metrics={metrics}
+            isLoading={isMetricsLoading}
+            error={metricsError}
+          />
+        );
     }
   };
 

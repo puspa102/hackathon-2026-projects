@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Heart, Calendar, Clock, MapPin, Bell } from 'lucide-react';
+import { Heart, Calendar, Clock, MapPin, Bell, Syringe } from 'lucide-react';
 import { fetchUserProfile } from '../../../api/userProfile';
 import { getVaccinations } from '../../../api/vaccinations';
 import { fetchPrograms } from '../../../api/programs';
 import { fetchUserNotifications } from '../../../api/notifications';
+
+function normalizeList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.results)) return payload.results;
+  return [];
+}
 
 export default function DashboardView() {
   const [profile, setProfile] = useState(null);
@@ -25,11 +31,10 @@ export default function DashboardView() {
           fetchUserNotifications(),
         ]);
 
-        const eventResults = programsRes?.data?.results || [];
         setProfile(profileRes?.data || null);
-        setVaccinations(Array.isArray(vaccinationsRes?.data) ? vaccinationsRes.data : []);
-        setPrograms(Array.isArray(eventResults) ? eventResults : []);
-        setNotifications(Array.isArray(notificationsRes?.data?.results) ? notificationsRes.data.results : []);
+        setVaccinations(normalizeList(vaccinationsRes?.data));
+        setPrograms(normalizeList(programsRes?.data));
+        setNotifications(normalizeList(notificationsRes?.data));
       } catch (err) {
         const message =
           err?.response?.data?.error ||
@@ -51,6 +56,24 @@ export default function DashboardView() {
   );
   const totalCount = vaccinations.length;
   const percentage = totalCount ? Math.round((completedCount / totalCount) * 100) : 0;
+  const unreadCount = useMemo(
+    () => notifications.filter((item) => !(item?.read ?? item?.is_read)).length,
+    [notifications],
+  );
+
+  const nextDose = useMemo(() => {
+    return vaccinations
+      .filter((item) => {
+        const status = (item?.status || '').toLowerCase();
+        return status === 'scheduled' || status === 'missed';
+      })
+      .sort((a, b) => {
+        const left = new Date(a?.scheduled_date || a?.date_administered || '9999-12-31').getTime();
+        const right = new Date(b?.scheduled_date || b?.date_administered || '9999-12-31').getTime();
+        return left - right;
+      })[0];
+  }, [vaccinations]);
+
   const upcomingPrograms = useMemo(
     () =>
       programs
@@ -87,23 +110,47 @@ export default function DashboardView() {
               <Bell size={18} />
               <p className="font-semibold">Unread Notifications</p>
             </div>
-            <p className="text-3xl font-bold text-white">{notifications.filter((item) => !item?.read).length}</p>
+            <p className="text-3xl font-bold text-white">{unreadCount}</p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-purple-500/20 bg-purple-500/10 p-4">
-        <div className="mb-2 flex items-center gap-2">
-          <Heart size={18} className="text-pink-400" />
-          <p className="font-semibold text-white">Vaccination Progress</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="h-3 flex-1 rounded-full bg-slate-800">
-            <div className="h-3 rounded-full bg-gradient-to-r from-emerald-400 to-blue-500" style={{ width: `${percentage}%` }} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-purple-500/20 bg-purple-500/10 p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Heart size={18} className="text-pink-400" />
+            <p className="font-semibold text-white">Vaccination Progress</p>
           </div>
-          <span className="text-sm font-semibold text-slate-300">
-            {completedCount}/{totalCount}
-          </span>
+          <div className="flex items-center gap-3">
+            <div className="h-3 flex-1 rounded-full bg-slate-800">
+              <div className="h-3 rounded-full bg-gradient-to-r from-emerald-400 to-blue-500" style={{ width: `${percentage}%` }} />
+            </div>
+            <span className="text-sm font-semibold text-slate-300">
+              {completedCount}/{totalCount}
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+          <div className="mb-2 flex items-center gap-2 text-emerald-200">
+            <Syringe size={18} />
+            <p className="font-semibold">Next Due Dose</p>
+          </div>
+          {nextDose ? (
+            <>
+              <p className="text-base font-semibold text-white">
+                {nextDose.vaccine_name} · Dose {nextDose.dose_number}
+              </p>
+              <p className="mt-1 text-sm text-slate-300">
+                Due: {nextDose.scheduled_date || nextDose.date_administered || 'Date not set'}
+              </p>
+              <p className="mt-1 text-xs uppercase tracking-wide text-emerald-200/90">
+                Status: {nextDose.status}
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-slate-300">No pending vaccination doses.</p>
+          )}
         </div>
       </div>
 

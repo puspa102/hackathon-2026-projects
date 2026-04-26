@@ -1,31 +1,38 @@
-import { LayoutDashboard, Syringe, Calendar, Bell, User, X } from 'lucide-react';
+import { LayoutDashboard, Syringe, Calendar, Bell, User, X, MessageCircle } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function Sidebar({ activeView, setActiveView, sidebarOpen, setSidebarOpen }) {
+  const { t } = useLanguage();
   const menuItems = [
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: t('dashboard', 'Dashboard'),
       icon: LayoutDashboard,
     },
     {
       id: 'vaccination-history',
-      label: 'Vaccination History',
+      label: t('vaccinationHistory', 'Vaccination History'),
       icon: Syringe,
     },
     {
       id: 'programs',
-      label: 'Programs',
+      label: t('programs', 'Programs'),
       icon: Calendar,
     },
     {
       id: 'notifications',
-      label: 'Notifications',
+      label: t('notifications', 'Notifications'),
       icon: Bell,
     },
     {
       id: 'profile',
-      label: 'Profile',
+      label: t('profile', 'Profile'),
       icon: User,
+    },
+    {
+      id: 'ai-assistant',
+      label: t('aiAssistant', 'AI Assistant'),
+      icon: MessageCircle,
     },
   ];
 
@@ -56,7 +63,7 @@ export default function Sidebar({ activeView, setActiveView, sidebarOpen, setSid
         {/* Logo Area */}
         <div className="border-b border-white/10 px-6 py-6">
           <h2 className="text-2xl font-bold text-white">Navjeevan</h2>
-          <p className="text-sm text-slate-400">Citizen Portal</p>
+          <p className="text-sm text-slate-400">{t('citizenPortal', 'Citizen Portal')}</p>
         </div>
 
         {/* Navigation Menu */}

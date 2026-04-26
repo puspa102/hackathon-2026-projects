@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
                 ('name', models.CharField(max_length=40, verbose_name='Name of the Event')),
-                ('event_status', models.CharField(choices=[('NOT_STARTED', 'NOT_STARTED'), ('IN_PROGRESS', 'IN_PROGRESS'), ('ENDED', 'ENDED')], default='NOT_STARTED', verbose_name='Event Status')),
+                ('event_status', models.CharField(choices=[('NOT_STARTED', 'NOT_STARTED'), ('IN_PROGRESS', 'IN_PROGRESS'), ('ENDED', 'ENDED')], default='NOT_STARTED', max_length=20, verbose_name='Event Status')),
                 ('description', models.TextField(blank=True, max_length=200, null=True, verbose_name='Event Description')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),

@@ -1,6 +1,7 @@
 import apiClient from './client';
 
 export const fetchPrograms = () => apiClient.get('/events/');
+export const fetchHealthcareDashboardMetrics = () => apiClient.get('/events/dashboard-metrics/');
 
 export const createProgram = (data) => apiClient.post('/events/', data);
 export const registerForProgram = (programId) => apiClient.post(`/events/${programId}/register/`);

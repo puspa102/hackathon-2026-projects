@@ -178,6 +178,9 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+# AI / Groq
+GROQ_API_KEY = config("GROQ_API_KEY", default="")
 # ─────────────────────────────────────────────────────────────────────────────
 # Email — Gmail SMTP
 # Add these to your settings.py

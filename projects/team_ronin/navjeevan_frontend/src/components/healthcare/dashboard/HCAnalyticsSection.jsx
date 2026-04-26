@@ -1,17 +1,55 @@
 import { ClipboardList, ShieldCheck } from 'lucide-react';
-import { analyticsCards } from './dashboardData';
 
-export default function HCAnalyticsSection() {
+export default function HCAnalyticsSection({ metrics, isLoading, error }) {
+  const cards = [
+    {
+      label: 'Total Vaccine History',
+      value: metrics.totalVaccineHistory,
+      description: 'All recorded vaccine history entries in database',
+      tone: 'from-blue-500/20 to-cyan-500/10',
+      accent: 'text-blue-200',
+    },
+    {
+      label: 'Upcoming Events',
+      value: metrics.upcomingEvents,
+      description: 'Events not yet marked as ended',
+      tone: 'from-emerald-500/20 to-teal-500/10',
+      accent: 'text-emerald-200',
+    },
+    {
+      label: 'Pending Follow-ups',
+      value: metrics.pendingFollowUps,
+      description: 'Scheduled or missed doses requiring attention',
+      tone: 'from-amber-500/20 to-orange-500/10',
+      accent: 'text-amber-200',
+    },
+    {
+      label: 'Registered Citizens',
+      value: metrics.totalCitizens,
+      description: 'Total active citizen profiles',
+      tone: 'from-violet-500/20 to-indigo-500/10',
+      accent: 'text-violet-200',
+    },
+  ];
+
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="rounded-2xl border border-red-400/25 bg-red-400/10 p-4 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {analyticsCards.map((card) => (
+        {cards.map((card) => (
           <article
             key={card.label}
             className={`rounded-2xl border border-white/10 bg-gradient-to-br ${card.tone} p-5 shadow-2xl shadow-black/20 backdrop-blur-xl`}
           >
             <p className="text-sm font-medium text-slate-300">{card.label}</p>
-            <p className={`mt-3 text-3xl font-extrabold ${card.accent}`}>{card.value}</p>
+            <p className={`mt-3 text-3xl font-extrabold ${card.accent}`}>
+              {isLoading ? '...' : card.value}
+            </p>
             <p className="mt-2 text-sm leading-6 text-slate-300">{card.description}</p>
           </article>
         ))}
@@ -31,14 +69,14 @@ export default function HCAnalyticsSection() {
 
           <div className="space-y-4">
             {[
-              { label: 'Children due this week', value: '86', tone: 'text-blue-200' },
-              { label: 'Completed follow-ups', value: '61', tone: 'text-emerald-200' },
-              { label: 'Programs needing approval', value: '4', tone: 'text-amber-200' },
+              { label: 'Completed follow-ups', value: metrics.completedFollowUps, tone: 'text-emerald-200' },
+              { label: 'Pending follow-ups', value: metrics.pendingFollowUps, tone: 'text-amber-200' },
+              { label: 'Upcoming events', value: metrics.upcomingEvents, tone: 'text-blue-200' },
             ].map((item) => (
               <div key={item.label} className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm text-slate-300">{item.label}</p>
-                  <p className={`text-2xl font-bold ${item.tone}`}>{item.value}</p>
+                  <p className={`text-2xl font-bold ${item.tone}`}>{isLoading ? '...' : item.value}</p>
                 </div>
               </div>
             ))}

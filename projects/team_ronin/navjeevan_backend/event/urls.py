@@ -24,6 +24,11 @@ urlpatterns = [
         name='event-my-notifications'
     ),
     path(
+        'events/dashboard-metrics/',
+        EventViewSet.as_view({'get': 'dashboard_metrics'}),
+        name='event-dashboard-metrics'
+    ),
+    path(
         'events/<uuid:pk>/register/',
         EventViewSet.as_view({'post': 'register_for_event'}),
         name='event-register-for-event'
