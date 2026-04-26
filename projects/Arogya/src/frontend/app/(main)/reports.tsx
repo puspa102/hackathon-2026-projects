@@ -1,89 +1,347 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, SafeAreaView } from 'react-native';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+} from "react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useRouter } from "expo-router";
+import { authStorage } from "@/services/storage";
+import { API_BASE_URL } from "@/services/config";
+import { useAuth } from "@/services/AuthContext";
 
-const BLUE = '#2A7B88';
-const LIGHT = '#FAFBFD';
-const GRAY = '#7A8CA3';
-const GREEN_BG = '#E6F2F4';
-const GREEN_TEXT = '#2A7B88';
+const PRIMARY = "#2A7B88";
+const DARK_TEAL = "#1B5C66";
+const BG = "#F5F7F9";
+const BORDER = "#E5E7EB";
+const GRAY = "#7A8CA3";
+
+interface Report {
+  id: number;
+  file: string;
+  file_type: "pdf" | "image";
+  uploaded_at: string;
+  status: "pending" | "processed";
+  extracted_text: string;
+}
+
+function getFileName(url: string): string {
+  return (
+    url
+      ?.split("/")
+      .pop()
+      ?.replace(/\.[^/.]+$/, "") ?? "Report"
+  );
+}
+
+function formatDate(dateStr: string): string {
+  try {
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+const PLACEHOLDER_REPORTS = [
+  {
+    id: -1,
+    title: "Cardiology Report",
+    date: "Oct 12, 2023",
+    icon: "article",
+    iconBg: "#E6F2F4",
+    iconColor: PRIMARY,
+  },
+  {
+    id: -2,
+    title: "Vaccination Record",
+    date: "Sep 28, 2023",
+    icon: "vaccines",
+    iconBg: "#E8F5E9",
+    iconColor: "#388E3C",
+  },
+  {
+    id: -3,
+    title: "Thyroid Panel",
+    date: "Aug 15, 2023",
+    icon: "biotech",
+    iconBg: "#FFF3E0",
+    iconColor: "#F57C00",
+  },
+];
 
 export default function ReportsScreen() {
+  const router = useRouter();
+  const { state } = useAuth();
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const recentUploads = [
-    { id: 1, name: 'Discharge_Summary.pdf', date: 'Oct 12, 2023', size: '2.4 MB', type: 'pdf', status: 'PROCESSED' },
-    { id: 2, name: 'Blood_Work_Oct.jpg', date: 'Oct 10, 2023', size: '1.1 MB', type: 'image', status: 'PENDING' },
-    { id: 3, name: 'Physio_Plan_v2.pdf', date: 'Sep 28, 2023', size: '3.8 MB', type: 'pdf', status: 'PROCESSED' },
-  ];
+  const user = state.user;
+  const initials = getInitials(
+    `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() ||
+      user?.username ||
+      "U",
+  );
+
+  const fetchReports = useCallback(async () => {
+    try {
+      const token = await authStorage.getToken();
+      const res = await fetch(`${API_BASE_URL}/reports/`, {
+        headers: { Authorization: `Token ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed");
+      const data = await res.json();
+      setReports(Array.isArray(data) ? data : (data.results ?? []));
+    } catch {
+      // silently fall back to placeholder
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchReports();
+  }, [fetchReports]);
+
+  const displayReports = reports.length > 0 ? reports : null;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Image source={{ uri: 'https://randomuser.me/api/portraits/men/32.jpg' }} style={styles.headerAvatar} />
-          <Text style={styles.headerTitle}>CareLoop</Text>
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <MaterialIcons name="notifications-none" size={24} color="#333" />
+        <Text style={styles.brand}>CareConnect</Text>
+        <TouchableOpacity style={styles.bellBtn}>
+          <MaterialIcons name="notifications-none" size={26} color="#111" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.pageTitle}>Upload Medical Report</Text>
-        <Text style={styles.pageSub}>Scan your hospital discharge papers to get your recovery plan.</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={PRIMARY}
+          />
+        }
+      >
+        <Text style={styles.pageTitle}>Upload Medical{"\n"}Report</Text>
+        <Text style={styles.pageSub}>
+          Securely share your laboratory results, prescriptions, or imaging
+          reports with your care team.
+        </Text>
 
-        {/* Drop Area */}
-        <View style={styles.dropArea}>
-          <View style={styles.cloudIconBg}>
-            <MaterialIcons name="cloud-upload" size={32} color={BLUE} />
+        {/* Upload Drop Zone */}
+        <View style={styles.dropZone}>
+          <View style={styles.uploadCircle}>
+            <MaterialIcons name="cloud-upload" size={32} color="#fff" />
           </View>
-          <Text style={styles.dropText}>Drop files here</Text>
-          <Text style={styles.supportText}>Supports PDF, JPG, PNG</Text>
+          <Text style={styles.dropTitle}>Drag and drop files here</Text>
+          <Text style={styles.dropSub}>
+            Support for PDF, JPG, PNG (Max 10MB)
+          </Text>
+
+          <TouchableOpacity
+            style={styles.browseBtn}
+            onPress={() =>
+              Alert.alert("Upload", "Document picker coming soon.")
+            }
+          >
+            <MaterialIcons
+              name="attach-file"
+              size={20}
+              color="#fff"
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.browseBtnText}>Browse Files</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.photoBtn}
+            onPress={() => Alert.alert("Camera", "Camera upload coming soon.")}
+          >
+            <MaterialIcons
+              name="photo-camera"
+              size={20}
+              color="#444"
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.photoBtnText}>Take Photo</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity style={[styles.actionBtn, styles.uploadPdfBtn]}>
-            <MaterialIcons name="picture-as-pdf" size={20} color="#fff" style={{ marginBottom: 8 }} />
-            <Text style={styles.uploadPdfText}>Upload PDF</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.takePhotoBtn]}>
-            <MaterialIcons name="photo-camera" size={20} color="#333" style={{ marginBottom: 8 }} />
-            <Text style={styles.takePhotoText}>Take Photo</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Recent Uploads */}
-        <View style={styles.recentHeader}>
-          <Text style={styles.sectionTitle}>Recent Uploads</Text>
-          <TouchableOpacity>
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
-        </View>
-
-        {recentUploads.map(item => (
-          <View key={item.id} style={styles.uploadCard}>
-            <View style={styles.fileIconBg}>
-              <MaterialIcons name={item.type === 'pdf' ? 'description' : 'image'} size={24} color={item.type === 'pdf' ? GREEN_TEXT : BLUE} />
+        {/* Queue */}
+        <Text style={styles.queueLabel}>QUEUE (2 FILES)</Text>
+        <View style={styles.queueCard}>
+          {/* File 1 */}
+          <View style={styles.queueItem}>
+            <View style={[styles.fileIconBox, { backgroundColor: DARK_TEAL }]}>
+              <MaterialIcons name="description" size={20} color="#fff" />
             </View>
             <View style={styles.fileInfo}>
-              <Text style={styles.fileName}>{item.name}</Text>
-              <Text style={styles.fileDetails}>{item.date} • {item.size}</Text>
-            </View>
-            <View style={[styles.statusBadge, item.status === 'PROCESSED' ? styles.statusProcessed : styles.statusPending]}>
-              <Text style={[styles.statusText, item.status === 'PROCESSED' ? styles.statusTextProcessed : styles.statusTextPending]}>
-                {item.status}
-              </Text>
+              <View style={styles.fileRow}>
+                <Text style={styles.fileName} numberOfLines={1}>
+                  Blood_Work_Res...
+                </Text>
+                <Text style={styles.fileSize}>2.4 MB</Text>
+                <TouchableOpacity>
+                  <MaterialIcons name="close" size={18} color={GRAY} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.progressBg}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: "80%", backgroundColor: "#4CAF50" },
+                  ]}
+                />
+              </View>
             </View>
           </View>
-        ))}
 
-        {/* Info Box */}
-        <View style={styles.infoBox}>
-          <MaterialIcons name="info" size={20} color={BLUE} style={{ marginRight: 12, marginTop: 2 }} />
+          <View style={styles.queueDivider} />
+
+          {/* File 2 */}
+          <View style={styles.queueItem}>
+            <View style={[styles.fileIconBox, { backgroundColor: "#9E9E9E" }]}>
+              <MaterialIcons name="image" size={20} color="#fff" />
+            </View>
+            <View style={styles.fileInfo}>
+              <View style={styles.fileRow}>
+                <Text style={styles.fileName} numberOfLines={1}>
+                  X-Ray_Lum...
+                </Text>
+                <Text style={[styles.fileSize, { color: GRAY }]}>
+                  Pending...
+                </Text>
+                <TouchableOpacity>
+                  <MaterialIcons name="close" size={18} color={GRAY} />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.progressBg}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    { width: "40%", backgroundColor: "#E0E0E0" },
+                  ]}
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Did you know card */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconCircle}>
+              <MaterialIcons name="info" size={18} color={DARK_TEAL} />
+            </View>
+            <Text style={styles.infoTitle}>Did you know?</Text>
+          </View>
           <Text style={styles.infoText}>
-            Your data is encrypted and handled securely. Recovery plans are generated using verified medical guidelines for your safety.
+            Uploading your reports manually allows our AI to analyze trends in
+            your health data over time.
           </Text>
         </View>
+
+        {/* Recent Reports */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent Reports</Text>
+          <TouchableOpacity>
+            <Text style={styles.viewAll}>View All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator color={PRIMARY} style={{ marginVertical: 20 }} />
+        ) : displayReports ? (
+          displayReports.slice(0, 5).map((report) => (
+            <TouchableOpacity
+              key={report.id}
+              style={styles.reportCard}
+              activeOpacity={0.85}
+              onPress={() => router.push("/(main)/report-summary" as any)}
+            >
+              <View
+                style={[
+                  styles.reportIconBox,
+                  {
+                    backgroundColor:
+                      report.file_type === "pdf" ? "#E6F2F4" : "#FFF3E0",
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name={report.file_type === "pdf" ? "article" : "image"}
+                  size={22}
+                  color={report.file_type === "pdf" ? PRIMARY : "#F57C00"}
+                />
+              </View>
+              <View style={styles.reportInfo}>
+                <Text style={styles.reportTitle} numberOfLines={1}>
+                  {getFileName(report.file)}
+                </Text>
+                <Text style={styles.reportDate}>
+                  {formatDate(report.uploaded_at)}
+                </Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={24} color="#CBD5E1" />
+            </TouchableOpacity>
+          ))
+        ) : (
+          PLACEHOLDER_REPORTS.map((r) => (
+            <TouchableOpacity
+              key={r.id}
+              style={styles.reportCard}
+              activeOpacity={0.85}
+              onPress={() => router.push("/(main)/report-summary" as any)}
+            >
+              <View
+                style={[styles.reportIconBox, { backgroundColor: r.iconBg }]}
+              >
+                <MaterialIcons
+                  name={r.icon as any}
+                  size={22}
+                  color={r.iconColor}
+                />
+              </View>
+              <View style={styles.reportInfo}>
+                <Text style={styles.reportTitle}>{r.title}</Text>
+                <Text style={styles.reportDate}>{r.date}</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={24} color="#CBD5E1" />
+            </TouchableOpacity>
+          ))
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -92,54 +350,203 @@ export default function ReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: LIGHT },
+  safeArea: { flex: 1, backgroundColor: BG },
+
+  // Header
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 12, backgroundColor: LIGHT
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: BLUE },
-
-  scrollContent: { padding: 20, paddingBottom: 40 },
-  pageTitle: { fontSize: 24, fontWeight: 'bold', color: '#111' },
-  pageSub: { fontSize: 15, color: '#555', marginTop: 8, marginBottom: 24, lineHeight: 22 },
-
-  dropArea: {
-    borderWidth: 1.5, borderColor: BLUE, borderStyle: 'dashed', borderRadius: 16,
-    padding: 30, alignItems: 'center', marginBottom: 20, backgroundColor: '#fff'
+  avatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
   },
-  cloudIconBg: { backgroundColor: '#E6F2F4', width: 60, height: 60, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  dropText: { fontSize: 18, fontWeight: 'bold', color: BLUE, marginBottom: 4 },
-  supportText: { fontSize: 13, color: '#555' },
-
-  actionRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, marginBottom: 32 },
-  actionBtn: { flex: 1, borderRadius: 12, paddingVertical: 20, alignItems: 'center', justifyContent: 'center' },
-  uploadPdfBtn: { backgroundColor: BLUE },
-  takePhotoBtn: { backgroundColor: '#E8ECF1' },
-  uploadPdfText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  takePhotoText: { color: '#333', fontSize: 14, fontWeight: 'bold' },
-
-  recentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#111' },
-  viewAllText: { fontSize: 14, color: BLUE, fontWeight: 'bold' },
-
-  uploadCard: {
-    backgroundColor: '#fff', borderRadius: 16, padding: 16, flexDirection: 'row',
-    alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#F0F2F5',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1
+  avatarText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.5,
   },
-  fileIconBg: { backgroundColor: '#F8F9FB', width: 44, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  brand: { flex: 1, fontSize: 18, fontWeight: "700", color: PRIMARY },
+  bellBtn: { padding: 4 },
+
+  // Content
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 32 },
+
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#111",
+    lineHeight: 34,
+    marginBottom: 10,
+    letterSpacing: -0.5,
+  },
+  pageSub: { fontSize: 14, color: "#555", lineHeight: 21, marginBottom: 24 },
+
+  // Drop Zone
+  dropZone: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: PRIMARY,
+    borderStyle: "dashed",
+    padding: 24,
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  uploadCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: PRIMARY,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  dropTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  dropSub: { fontSize: 13, color: GRAY, marginBottom: 20, textAlign: "center" },
+  browseBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: DARK_TEAL,
+    borderRadius: 12,
+    height: 48,
+    width: "100%",
+    marginBottom: 12,
+  },
+  browseBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  photoBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#EEF0F2",
+    borderRadius: 12,
+    height: 48,
+    width: "100%",
+  },
+  photoBtnText: { color: "#333", fontSize: 15, fontWeight: "600" },
+
+  // Queue
+  queueLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: GRAY,
+    letterSpacing: 1.2,
+    marginBottom: 10,
+  },
+  queueCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  queueItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  fileIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
   fileInfo: { flex: 1 },
-  fileName: { fontSize: 14, fontWeight: 'bold', color: '#111', marginBottom: 4 },
-  fileDetails: { fontSize: 12, color: GRAY },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusProcessed: { backgroundColor: GREEN_BG },
-  statusPending: { backgroundColor: '#F0F2F5' },
-  statusText: { fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 },
-  statusTextProcessed: { color: GREEN_TEXT },
-  statusTextPending: { color: '#555' },
+  fileRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  fileName: { flex: 1, fontSize: 13, fontWeight: "600", color: "#111" },
+  fileSize: { fontSize: 12, color: "#111", fontWeight: "600", marginRight: 8 },
+  progressBg: {
+    height: 4,
+    backgroundColor: "#F0F0F0",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  progressFill: { height: 4, borderRadius: 2 },
+  queueDivider: { height: 1, backgroundColor: "#F1F5F9" },
 
-  infoBox: { backgroundColor: '#E6F2F4', borderRadius: 12, padding: 16, flexDirection: 'row', marginTop: 16 },
-  infoText: { flex: 1, fontSize: 13, color: '#333', lineHeight: 20 },
+  // Info card
+  infoCard: {
+    backgroundColor: DARK_TEAL,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 28,
+  },
+  infoRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  infoIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  infoTitle: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  infoText: { fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 20 },
+
+  // Recent Reports
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#111" },
+  viewAll: { fontSize: 14, color: PRIMARY, fontWeight: "700" },
+
+  reportCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  reportIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  reportInfo: { flex: 1 },
+  reportTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 3,
+  },
+  reportDate: { fontSize: 12, color: GRAY },
 });

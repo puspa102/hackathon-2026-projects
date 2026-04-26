@@ -1,35 +1,56 @@
 @echo off
-echo ========================================
-echo  Arogya Backend Server
-echo ========================================
+title Arogya Backend Server
+color 0A
+
+echo.
+echo  ==========================================
+echo   AROGYA BACKEND SERVER
+echo  ==========================================
 echo.
 
+:: Go to the project backend directory
 cd /d "%~dp0src\backend\Arogya"
 
-echo [1/2] Activating virtual environment...
-call .venv\Scripts\activate.bat
-if %errorlevel% neq 0 (
-    echo ERROR: Could not activate virtual environment.
-    pause
-    exit /b 1
+:: Find the right Python (try .venv2 first, then .venv)
+set PYTHON=
+if exist "..\\.venv2\Scripts\python.exe" (
+    set PYTHON=..\.venv2\Scripts\python.exe
+    echo  [OK] Using .venv2
+) else if exist "..\\.venv\Scripts\python.exe" (
+    set PYTHON=..\.venv\Scripts\python.exe
+    echo  [OK] Using .venv
+) else (
+    echo  [WARN] No venv found - trying system Python
+    set PYTHON=python
 )
 
-echo [2/2] Running migrations...
-python manage.py migrate --run-syncdb
-
 echo.
-echo ========================================
-echo  Server starting on ALL network interfaces
-echo  Localhost : http://localhost:8000
-echo  Network   : http://192.168.100.40:8000
-echo  Admin     : http://localhost:8000/admin
-echo ========================================
-echo.
-echo  IMPORTANT: Your phone MUST use:
-echo  http://192.168.100.40:8000
-echo.
-echo  Press Ctrl+C to stop the server
-echo ========================================
+echo  ==========================================
+echo   RUNNING MIGRATIONS
+echo  ==========================================
+%PYTHON% manage.py migrate
 echo.
 
-python manage.py runserver 0.0.0.0:8000
+echo  ==========================================
+echo   SERVER INFO
+echo  ==========================================
+echo.
+echo   Local   : http://127.0.0.1:8000
+echo   Network : http://192.168.100.40:8000
+echo   Admin   : http://127.0.0.1:8000/admin/
+echo.
+echo   For Expo Go on PHONE use:
+echo   http://192.168.100.40:8000
+echo.
+echo   Make sure your phone and PC are on
+echo   the SAME WiFi network!
+echo  ==========================================
+echo.
+echo  Starting... Press Ctrl+C to stop.
+echo.
+
+%PYTHON% manage.py runserver 0.0.0.0:8000
+
+echo.
+echo  Server stopped.
+pause

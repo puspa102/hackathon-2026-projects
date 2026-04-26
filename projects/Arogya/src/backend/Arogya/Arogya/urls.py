@@ -35,6 +35,7 @@ urlpatterns = [
     path("alerts/", include("alerts.urls")),
     path("medicines/", include("medicines.urls")),
     path("reports/", include("reports.urls")),
+    path("appointments/", include("appointments.urls")),
     # API Authentication
     path("api-auth/", include("rest_framework.urls")),
 ]

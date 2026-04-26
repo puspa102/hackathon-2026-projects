@@ -1,120 +1,215 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, SafeAreaView } from 'react-native';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+} from "react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useRouter } from "expo-router";
+import { authStorage } from "@/services/storage";
+import { API_BASE_URL } from "@/services/config";
 
-const BLUE = '#2A7B88';
-const RED = '#C62828';
-const BG = '#F8F9FA';
-const GRAY = '#7A8CA3';
-const BORDER = '#E5E7EB';
+const BLUE = "#2A7B88";
+const RED = "#C62828";
+const BG = "#F8F9FA";
+const GRAY = "#7A8CA3";
+const BORDER = "#E5E7EB";
+
+interface Medicine {
+  id: number;
+  name: string;
+  dosage: string;
+  frequency: string;
+  reminder_time: string;
+  start_date: string;
+  end_date: string | null;
+  instructions: string | null;
+}
+
+function formatTime(timeStr: string): string {
+  if (!timeStr) return "";
+  const [h, m] = timeStr.split(":");
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const display = hour % 12 || 12;
+  return `${display}:${m} ${ampm}`;
+}
+
+function isActive(med: Medicine): boolean {
+  const today = new Date().toISOString().split("T")[0];
+  if (med.start_date > today) return false;
+  if (med.end_date && med.end_date < today) return false;
+  return true;
+}
 
 export default function MedicationsScreen() {
+  const router = useRouter();
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMedicines = useCallback(async () => {
+    try {
+      setError(null);
+      const token = await authStorage.getToken();
+      const res = await fetch(`${API_BASE_URL}/medicines/`, {
+        headers: { Authorization: `Token ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load medications");
+      const data = await res.json();
+      const list: Medicine[] = Array.isArray(data)
+        ? data
+        : (data.results ?? []);
+      setMedicines(list);
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to load medications");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMedicines();
+  }, [fetchMedicines]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchMedicines();
+  }, [fetchMedicines]);
+
+  const activeMeds = medicines.filter(isActive);
+  const todayMeds = activeMeds;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.canGoBack() && router.back()}
+            style={{ padding: 4 }}
+          >
+            <MaterialIcons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Medications</Text>
+          <View style={{ width: 32 }} />
+        </View>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={BLUE} />
+          <Text style={styles.loadingText}>Loading medications…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Image source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} style={styles.headerAvatar} />
-          <Text style={styles.headerTitle}>CareLoop</Text>
-        </View>
-        <MaterialIcons name="notifications-none" size={24} color="#333" />
+        <TouchableOpacity
+          onPress={() => router.canGoBack() && router.back()}
+          style={{ padding: 4 }}
+        >
+          <MaterialIcons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Medications</Text>
+        <View style={{ width: 32 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Text style={styles.greetingTitle}>Good Morning, Sarah</Text>
-        <Text style={styles.greetingSub}>You have 3 medications scheduled for today.</Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={BLUE}
+          />
+        }
+      >
+        <Text style={styles.greetingTitle}>Your Medications</Text>
+        <Text style={styles.greetingSub}>
+          {todayMeds.length > 0
+            ? `You have ${todayMeds.length} medication${todayMeds.length > 1 ? "s" : ""} scheduled.`
+            : "No medications scheduled right now."}
+        </Text>
 
-        {/* Due Now Card */}
-        <View style={styles.dueCard}>
-          <View style={styles.dueImageContainer}>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&q=80' }} 
-              style={styles.dueImage} 
-            />
-            <View style={styles.dueBadge}>
-              <Text style={styles.dueBadgeText}>DUE NOW</Text>
-            </View>
+        {error && (
+          <View style={styles.errorBanner}>
+            <MaterialIcons name="wifi-off" size={16} color={RED} />
+            <Text style={styles.errorText}>{error}</Text>
           </View>
-          
-          <View style={styles.dueContent}>
-            <View style={styles.timeRow}>
-              <MaterialIcons name="schedule" size={16} color={BLUE} style={{ marginRight: 6 }} />
-              <Text style={styles.timeText}>08:00 AM</Text>
-            </View>
-            <Text style={styles.medName}>Lisinopril</Text>
-            
-            <View style={styles.tagsRow}>
-              <View style={styles.tag}><Text style={styles.tagText}>10 mg</Text></View>
-              <View style={styles.tag}><Text style={styles.tagText}>1 Capsule</Text></View>
-              <View style={styles.tag}><Text style={styles.tagText}>With Food</Text></View>
+        )}
+
+        {todayMeds.length === 0 && !error && (
+          <View style={styles.emptyCard}>
+            <MaterialIcons name="medication" size={48} color="#CBD5E1" />
+            <Text style={styles.emptyTitle}>No medications</Text>
+            <Text style={styles.emptySub}>
+              You have no active medications. Ask your doctor to prescribe some.
+            </Text>
+          </View>
+        )}
+
+        {todayMeds.map((med) => (
+          <View key={med.id} style={styles.medCard}>
+            <View style={styles.medHeader}>
+              <View style={styles.medIconBg}>
+                <MaterialIcons name="medication" size={24} color={BLUE} />
+              </View>
+              <View style={styles.medInfo}>
+                <Text style={styles.medName}>{med.name}</Text>
+                <Text style={styles.medDosage}>
+                  {med.dosage} • {med.frequency}
+                </Text>
+              </View>
+              <View style={styles.timeTag}>
+                <MaterialIcons name="schedule" size={14} color={BLUE} />
+                <Text style={styles.timeTagText}>
+                  {formatTime(med.reminder_time)}
+                </Text>
+              </View>
             </View>
 
-            <View style={styles.actionColumn}>
+            {med.instructions ? (
+              <Text style={styles.instructions}>{med.instructions}</Text>
+            ) : null}
+
+            <View style={styles.medFooter}>
+              <Text style={styles.dateRange}>
+                From {med.start_date}
+                {med.end_date ? ` to ${med.end_date}` : " (ongoing)"}
+              </Text>
+            </View>
+
+            <View style={styles.actionRow}>
               <TouchableOpacity style={styles.takenBtn}>
-                <MaterialIcons name="check-circle" size={18} color="#fff" style={{ marginRight: 8 }} />
-                <Text style={styles.takenBtnText}>Taken</Text>
+                <MaterialIcons
+                  name="check-circle"
+                  size={18}
+                  color="#fff"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.takenBtnText}>Mark Taken</Text>
               </TouchableOpacity>
-              
               <TouchableOpacity style={styles.snoozeBtn}>
-                <MaterialIcons name="snooze" size={18} color="#444" style={{ marginRight: 8 }} />
+                <MaterialIcons
+                  name="snooze"
+                  size={18}
+                  color="#444"
+                  style={{ marginRight: 8 }}
+                />
                 <Text style={styles.snoozeBtnText}>Snooze</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.missedBtn}>
-                <MaterialIcons name="close" size={18} color={RED} style={{ marginRight: 8 }} />
-                <Text style={styles.missedBtnText}>Missed</Text>
-              </TouchableOpacity>
             </View>
           </View>
-        </View>
-
-        {/* Daily Adherence */}
-        <View style={styles.adherenceCard}>
-          <Text style={styles.adherenceTitle}>Daily Adherence</Text>
-          <View style={styles.adherenceRow}>
-            <View style={styles.adherenceCircle}>
-              <Text style={styles.adherencePercent}>66%</Text>
-            </View>
-            <View style={styles.adherenceInfo}>
-              <Text style={styles.adherenceStatus}>2 of 3 taken</Text>
-              <Text style={styles.adherenceSub}>Keep it up, Sarah!</Text>
-            </View>
-          </View>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: '66%' }]} />
-          </View>
-        </View>
-
-        {/* Upcoming Today */}
-        <View style={styles.upcomingHeader}>
-          <Text style={styles.sectionTitle}>Upcoming Today</Text>
-          <TouchableOpacity>
-            <Text style={styles.linkText}>View Calendar</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.upcomingItem}>
-          <View style={styles.upcomingIconBg}>
-            <MaterialIcons name="medication" size={24} color={BLUE} />
-          </View>
-          <View style={styles.upcomingInfo}>
-            <Text style={styles.upcomingName}>Metformin</Text>
-            <Text style={styles.upcomingDesc}>500mg • After Lunch</Text>
-          </View>
-          <Text style={styles.upcomingTime}>01:00 PM</Text>
-        </View>
-
-        <View style={styles.upcomingItem}>
-          <View style={styles.upcomingIconBg}>
-            <MaterialIcons name="medical-services" size={24} color={BLUE} />
-          </View>
-          <View style={styles.upcomingInfo}>
-            <Text style={styles.upcomingName}>Atorvastatin</Text>
-            <Text style={styles.upcomingDesc}>20mg • Before Bed</Text>
-          </View>
-          <Text style={styles.upcomingTime}>09:00 PM</Text>
-        </View>
+        ))}
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -124,60 +219,113 @@ export default function MedicationsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: BG },
-  header: { 
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 12, backgroundColor: '#fff'
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: BLUE },
-  
+  headerTitle: { fontSize: 18, fontWeight: "bold", color: BLUE },
+  centered: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  loadingText: { fontSize: 15, color: GRAY },
   scrollContent: { padding: 16, paddingBottom: 40 },
-  greetingTitle: { fontSize: 24, fontWeight: 'bold', color: '#111' },
-  greetingSub: { fontSize: 14, color: '#555', marginTop: 4, marginBottom: 20 },
-  
-  dueCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: BORDER, overflow: 'hidden' },
-  dueImageContainer: { height: 140, position: 'relative' },
-  dueImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  dueBadge: { position: 'absolute', top: 12, right: 12, backgroundColor: BLUE, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  dueBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 },
-  
-  dueContent: { padding: 20 },
-  timeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  timeText: { fontSize: 14, color: BLUE, fontWeight: 'bold' },
-  medName: { fontSize: 22, fontWeight: 'bold', color: '#111', marginBottom: 12 },
-  
-  tagsRow: { flexDirection: 'row', marginBottom: 20, gap: 8 },
-  tag: { backgroundColor: '#F0F2F5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  tagText: { fontSize: 12, color: '#444' },
-  
-  actionColumn: { gap: 12 },
-  takenBtn: { backgroundColor: BLUE, borderRadius: 10, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  takenBtnText: { color: '#fff', fontSize: 14, fontWeight: 'bold' },
-  snoozeBtn: { backgroundColor: '#E8EAED', borderRadius: 10, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  snoozeBtnText: { color: '#333', fontSize: 14, fontWeight: 'bold' },
-  missedBtn: { backgroundColor: '#fff', borderWidth: 1, borderColor: RED, borderRadius: 10, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  missedBtnText: { color: RED, fontSize: 14, fontWeight: 'bold' },
-  
-  adherenceCard: { backgroundColor: '#E6F2F4', borderRadius: 16, padding: 20, marginBottom: 20 },
-  adherenceTitle: { fontSize: 16, fontWeight: 'bold', color: BLUE, marginBottom: 16 },
-  adherenceRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  adherenceCircle: { width: 64, height: 64, borderRadius: 32, borderWidth: 6, borderColor: BLUE, alignItems: 'center', justifyContent: 'center', borderRightColor: '#ccc' },
-  adherencePercent: { fontSize: 16, fontWeight: 'bold', color: BLUE },
-  adherenceInfo: { marginLeft: 16 },
-  adherenceStatus: { fontSize: 14, fontWeight: 'bold', color: '#111', marginBottom: 4 },
-  adherenceSub: { fontSize: 13, color: '#555' },
-  progressBarBg: { height: 4, backgroundColor: '#D0E0DC', borderRadius: 2 },
-  progressBarFill: { height: 4, backgroundColor: BLUE, borderRadius: 2 },
-  
-  upcomingHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#111' },
-  linkText: { fontSize: 12, color: BLUE, fontWeight: '500' },
-  
-  upcomingItem: { backgroundColor: '#fff', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: BORDER },
-  upcomingIconBg: { backgroundColor: '#E6F2F4', width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  upcomingInfo: { flex: 1, marginLeft: 12 },
-  upcomingName: { fontSize: 14, fontWeight: 'bold', color: '#111', marginBottom: 2 },
-  upcomingDesc: { fontSize: 12, color: GRAY },
-  upcomingTime: { fontSize: 12, fontWeight: 'bold', color: BLUE },
+  greetingTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#111",
+    marginBottom: 4,
+  },
+  greetingSub: { fontSize: 14, color: "#555", marginBottom: 20 },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+  },
+  errorText: { fontSize: 13, color: RED, flex: 1 },
+  emptyCard: {
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 32,
+    gap: 8,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: "#0F172A" },
+  emptySub: { fontSize: 14, color: GRAY, textAlign: "center" },
+  medCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: BORDER,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  medHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+  medIconBg: {
+    backgroundColor: "#E6F2F4",
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  medInfo: { flex: 1 },
+  medName: { fontSize: 17, fontWeight: "bold", color: "#111", marginBottom: 2 },
+  medDosage: { fontSize: 13, color: GRAY },
+  timeTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E6F2F4",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  timeTagText: { fontSize: 12, color: BLUE, fontWeight: "bold", marginLeft: 4 },
+  instructions: {
+    fontSize: 13,
+    color: "#555",
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  medFooter: { marginBottom: 12 },
+  dateRange: { fontSize: 12, color: GRAY },
+  actionRow: { flexDirection: "row", gap: 12 },
+  takenBtn: {
+    flex: 1,
+    backgroundColor: BLUE,
+    borderRadius: 10,
+    paddingVertical: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  takenBtnText: { color: "#fff", fontSize: 14, fontWeight: "bold" },
+  snoozeBtn: {
+    flex: 1,
+    backgroundColor: "#E8EAED",
+    borderRadius: 10,
+    paddingVertical: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  snoozeBtnText: { color: "#333", fontSize: 14, fontWeight: "bold" },
 });

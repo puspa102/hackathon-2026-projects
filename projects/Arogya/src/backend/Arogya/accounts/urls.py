@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    DoctorDashboardView,
     LoginView,
     LogoutView,
     PatientDashboardView,
@@ -14,4 +15,5 @@ urlpatterns = [
     path("logout/", LogoutView.as_view(), name="logout"),
     path("profile/", UserProfileView.as_view(), name="profile"),
     path("dashboard/", PatientDashboardView.as_view(), name="dashboard"),
+    path("doctor-dashboard/", DoctorDashboardView.as_view(), name="doctor-dashboard"),
 ]

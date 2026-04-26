@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models as db_models
 from django.utils import timezone
 from rest_framework import status
@@ -192,6 +194,132 @@ class PatientDashboardView(APIView):
                 if doctor_message
                 else None,
                 "medicines_count": today_medicines.count(),
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class DoctorDashboardView(APIView):
+    """
+    Aggregated dashboard endpoint for the doctor home screen.
+    Returns: patient stats, urgent alerts, today's appointments, reports to verify.
+    """
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return Response(
+                {"error": "Authentication required"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        if request.user.role != "doctor":
+            return Response(
+                {"error": "Doctor access required"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        from appointments.models import Appointment
+        from appointments.serializers import (
+            AppointmentSerializer,
+            PatientBriefSerializer,
+        )
+        from checkins.models import DailyCheckIn
+        from django.db.models import Min, Q
+        from reports.models import DischargeReport
+        from reports.serializers import DischargeReportSerializer
+
+        today = timezone.now().date()
+        week_ago = today - datetime.timedelta(days=7)
+
+        # All patient IDs who have appointments with this doctor
+        patient_ids = (
+            Appointment.objects.filter(doctor=request.user)
+            .values_list("patient_id", flat=True)
+            .distinct()
+        )
+
+        # Active patients count (those with at least one appointment)
+        active_patients_count = len(set(patient_ids))
+
+        # New patients this week (first appointment this week)
+        new_patient_ids = (
+            Appointment.objects.filter(doctor=request.user)
+            .values("patient_id")
+            .annotate(first_appt=Min("scheduled_date"))
+            .filter(first_appt__gte=week_ago)
+            .values_list("patient_id", flat=True)
+        )
+        new_patients_count = len(set(new_patient_ids))
+
+        # Urgent alerts: critical/warning check-ins from the doctor's patients
+        urgent_checkins = (
+            DailyCheckIn.objects.filter(
+                user__in=patient_ids,
+                risk_level__in=["emergency", "warning"],
+            )
+            .select_related("user")
+            .order_by("-created_at")[:10]
+        )
+
+        urgent_alerts = []
+        for checkin in urgent_checkins:
+            patient = checkin.user
+            name = (
+                f"{patient.first_name} {patient.last_name}".strip() or patient.username
+            )
+            urgent_alerts.append(
+                {
+                    "patient_id": patient.id,
+                    "patient_name": name,
+                    "risk_level": checkin.risk_level,
+                    "pain_level": checkin.pain_level,
+                    "symptoms": checkin.symptoms,
+                    "fever": checkin.fever,
+                    "breathing_problem": checkin.breathing_problem,
+                    "bleeding": checkin.bleeding,
+                    "guidance": checkin.guidance,
+                    "checkin_id": checkin.id,
+                    "created_at": checkin.created_at.isoformat(),
+                }
+            )
+
+        # Pending tasks: count of emergency/warning check-ins (unreviewed)
+        pending_tasks_count = DailyCheckIn.objects.filter(
+            user__in=patient_ids,
+            risk_level__in=["emergency", "warning"],
+        ).count()
+
+        # Today's upcoming appointments
+        today_appointments = (
+            Appointment.objects.filter(
+                doctor=request.user,
+                scheduled_date=today,
+                status__in=["pending", "confirmed"],
+            )
+            .select_related("patient", "doctor__doctor_profile")
+            .order_by("scheduled_time")
+        )
+
+        # Pending reports to verify (all patients' unverified reports)
+        pending_reports = (
+            DischargeReport.objects.filter(
+                patient__in=patient_ids,
+                status="pending",
+            )
+            .select_related("patient")
+            .order_by("-uploaded_at")[:5]
+        )
+
+        appointments_data = AppointmentSerializer(today_appointments, many=True).data
+        reports_data = DischargeReportSerializer(pending_reports, many=True).data
+
+        return Response(
+            {
+                "active_patients_count": active_patients_count,
+                "new_patients_count": new_patients_count,
+                "pending_tasks_count": pending_tasks_count,
+                "urgent_alerts": urgent_alerts,
+                "today_appointments": appointments_data,
+                "pending_reports": reports_data,
             },
             status=status.HTTP_200_OK,
         )

@@ -7,7 +7,7 @@ export default function PatientTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#16a085",
+        tabBarActiveTintColor: "#2A7B88",
         tabBarInactiveTintColor: "#95a5a6",
         headerShown: false,
         tabBarButton: HapticTab,
@@ -38,11 +38,20 @@ export default function PatientTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="check-in"
+        name="reports"
         options={{
-          title: "Check-in",
+          title: "Reports",
           tabBarIcon: ({ color }) => (
-            <MaterialIcons name="fact-check" size={26} color={color} />
+            <MaterialIcons name="description" size={26} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="doctors"
+        options={{
+          title: "Doctors",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons name="medical-services" size={26} color={color} />
           ),
         }}
       />
@@ -53,6 +62,13 @@ export default function PatientTabLayout() {
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="person" size={26} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="check-in"
+        options={{
+          href: null,
+          title: "Check-in",
         }}
       />
       <Tabs.Screen

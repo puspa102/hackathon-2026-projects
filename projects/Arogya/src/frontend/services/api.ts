@@ -240,6 +240,61 @@ class ApiClient {
     return this.request("/doctors/nearby/", "GET");
   }
 
+  // ==================== Doctor Dashboard Endpoints ====================
+
+  async getDoctorDashboard() {
+    return this.request("/accounts/doctor-dashboard/", "GET");
+  }
+
+  // ==================== Appointment Endpoints ====================
+
+  async getAppointments(filters?: { date?: string; status?: string }) {
+    let endpoint = "/appointments/";
+    if (filters && Object.keys(filters).length > 0) {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null)
+          params.append(key, String(value));
+      });
+      endpoint += `?${params.toString()}`;
+    }
+    return this.request(endpoint, "GET");
+  }
+
+  async getTodayAppointments() {
+    return this.request("/appointments/today/", "GET");
+  }
+
+  async getDoctorPatients() {
+    return this.request("/appointments/my_patients/", "GET");
+  }
+
+  async createAppointment(data: {
+    patient: number;
+    scheduled_date: string;
+    scheduled_time: string;
+    appointment_type: "video" | "in_clinic" | "home_visit";
+    status?: string;
+    chief_complaint?: string;
+    notes?: string;
+  }) {
+    return this.request("/appointments/", "POST", data);
+  }
+
+  async updateAppointmentStatus(id: number | string, newStatus: string) {
+    return this.request(`/appointments/${id}/update_status/`, "PATCH", {
+      status: newStatus,
+    });
+  }
+
+  async getDoctorReports() {
+    return this.request("/reports/doctor/", "GET");
+  }
+
+  async verifyReport(id: number | string) {
+    return this.request(`/reports/${id}/verify/`, "POST");
+  }
+
   // ==================== Chat Endpoints ====================
 
   async getMessages() {
