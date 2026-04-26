@@ -7,8 +7,12 @@ biggerscope.md
 __pycache__/
 *.pyc
 teammate.md
+<<<<<<< HEAD
 plan.md 
 
+=======
+plan.md
+>>>>>>> Prajan
 
 AI.md
 context.md
