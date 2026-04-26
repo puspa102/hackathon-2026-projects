@@ -45,9 +45,8 @@ function Sidebar() {
   const patientLinks = [
     { label: "Dashboard", href: "/dashboard/patient", icon: LayoutDashboard },
     { label: "Sessions", href: "/my-sessions", icon: CalendarDays },
-    { label: "Progress & History", href: "/session-result", icon: ClipboardList },
-    { label: "Clinical Metrics", href: "/progress", icon: Activity },
-    { label: "Verified Reviews", href: "/feedback", icon: MessageSquareMore },
+    { label: "Session Result", href: "/session-result", icon: BookOpen },
+    { label: "Progress & History", href: "/progress", icon: Activity },
   ];
 
   const navLinks = role === "doctor" ? doctorLinks : patientLinks;
