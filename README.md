@@ -1,55 +1,45 @@
-# 🏥 Arogya AI: Your Post-Discharge Health Companion
+# 🏥 Arogya AI: Post-Discharge Health Companion
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Powered by Groq](https://img.shields.io/badge/Powered%20by-Groq%20Llama%203.3-orange)](https://groq.com/)
-
-**Arogya** (Sanskrit for "Health") is a cutting-edge, AI-driven healthcare platform designed to bridge the critical gap between hospital discharge and full recovery. By leveraging state-of-the-art Large Language Models and computer vision, Arogya ensures that patients are never alone during their recovery journey.
-
----
-
-## 🚀 Key Features
-
-### 🧠 Intelligent AI Health Suite
-*   **AI Report Deep-Dive**: Upload complex clinical discharge summaries (PDF/Images). Our system uses **Groq Llama 3.2 Vision** to extract health markers, simplify medical jargon, and identify prescribed medications automatically.
-*   **Smart Medication Alarms**: No more manual data entry. The AI extracts your medication schedule and automatically sets **recurring daily alarms** on your device via Expo Notifications.
-*   **Proactive Symptom Checker**: Feeling unwell? Chat with Arogya AI. It analyzes your symptoms against your recent medical history to provide empathetic guidance and risk classification.
-
-### 👨‍⚕️ Professional Care Circle
-*   **Direct Doctor Chat**: Secure, real-time messaging with your assigned specialist.
-*   **Risk-Stratified Check-ins**: Daily assessments that use AI to classify your status into *Normal*, *Warning*, or *Emergency*, instantly alerting your care team if complications are detected.
-*   **Doctor Dashboard**: A specialized view for medical professionals to monitor patient recovery, verify AI-extracted reports, and manage urgent alerts.
+## 👥 Team Members
+*   **Samikshya Karki** (Leader) - [@samikxya-karki](https://github.com/samikxya-karki)
+*   **Aashish Kumar Shah** (Member) - [@Aashish-Kumar-Shah-091](https://github.com/Aashish-Kumar-Shah-091)
+*   **Puspa Khadka** (Member) - [@puspa102](https://github.com/puspa102)
+*   **Sulav Shrestha** (Member) - [@Prognoob01](https://github.com/prognoob01)
 
 ---
 
-## 🛠️ Technology Stack
+## 🚩 Problem Statement
+After hospital discharge, patients often face a "Care Gap." Without 24/7 medical supervision, they struggle to:
+*   Interpret complex medical jargon in their discharge summaries.
+*   Adhere to strict medication schedules.
+*   Recognize early warning signs of complications before they become emergencies.
+*   Stay connected with their discharge doctors for follow-up care.
 
-| Component | Technology |
-| :--- | :--- |
-| **Frontend** | React Native (Expo), TypeScript, Expo Router |
-| **Backend** | Python, Django REST Framework, SQLite |
-| **AI Reasoning** | Groq Llama 3.3 70B (High-accuracy reasoning) |
-| **Vision/OCR** | Groq Llama 3.2 11B Vision (Clinical report parsing) |
-| **Notifications** | Expo Notifications (Local Scheduling) |
-| **Styling** | Custom Design System (Teal Theme) |
+This lack of continuity leads to preventable complications, high patient anxiety, and increased hospital readmission rates.
 
 ---
 
-## 🏗️ Architecture
+## 💡 Solution Description
+**Arogya** (Health) is an AI-powered ecosystem that serves as a bridge between clinical discharge and full recovery.
 
-```mermaid
-graph TD
-    User((Patient/Doctor)) --> App[React Native Frontend]
-    App --> API[Django REST API]
-    API --> DB[(SQLite/PostgreSQL)]
-    API --> Groq[Groq AI Cloud]
-    Groq --> LlamaV[Llama 3.2 Vision]
-    Groq --> LlamaR[Llama 3.3 Reasoning]
-    App --> LocalNotify[Expo Notifications]
-```
+**Key Features:**
+1.  **AI Report Analysis**: Instantly parses medical reports (PDF/Photos) using **Groq Llama 3.2 Vision** to extract key clinical markers and simplify terminology.
+2.  **AI Symptom Checker & Chatbot**: A 24/7 interactive assistant that analyzes patient symptoms against their medical history to provide empathetic guidance and risk classification.
+3.  **Proactive Monitoring**: Daily health check-ins that automatically escalate to doctors if emergency markers are detected.
+4.  **Secure Care Circle**: Direct real-time messaging between patients and specialists for seamless follow-up.
 
 ---
 
-## 📥 Installation & Setup
+## 🛠️ Tech Stack
+*   **Frontend**: React Native (Expo), TypeScript, Expo Router, Material Icons.
+*   **Backend**: Python, Django REST Framework, SQLite (Development).
+*   **AI Engine**: Groq Llama 3.3 70B (Reasoning) & Llama 3.2 11B Vision (OCR/Image Analysis).
+*   **Notifications**: Expo Notifications for automated medication reminders and alerts.
+*   **UI/UX**: Custom Teal-themed Design System.
+
+---
+
+## 📥 Setup Instructions
 
 ### 1. Backend Setup
 ```bash
@@ -59,13 +49,10 @@ cd projects/Arogya/src/backend/Arogya
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure Environment
-# Create a .env file with:
-# GROQ_API_KEY=your_key_here
-# DEBUG=True
-
-# Run migrations & Start
+# Run migrations
 python manage.py migrate
+
+# Start the server
 python manage.py runserver
 ```
 
@@ -77,25 +64,17 @@ cd projects/Arogya/src/frontend
 # Install dependencies
 npm install
 
-# Start Expo
-npx expo start --clear
+# Start Expo (Scan QR code with Expo Go app)
+npx expo start
 ```
 
 ---
 
-## 🛡️ Responsible AI & Security
-Arogya is built with medical ethics at its core.
-- **Medical Disclaimer**: Every AI response includes a clear disclaimer that the assistant is not a doctor.
-- **Data Privacy**: All clinical reports are processed through secure API channels and never used for model retraining.
-- **Human-in-the-loop**: Doctors have the final say in verifying AI-extracted reports before they are permanently added to the medical record.
-
----
-
-## 👥 Development Team
-*   **Puspa** - Lead Systems Architect
-*   **Arogya AI** - Cognitive Integration
+## 📺 Demo
+*   **Screenshots**: [View Screen Mockups](./projects/Arogya/demo/screenshots/)
+*   **Demo Video**: [Watch the Walkthrough](https://your-demo-link.com)
 
 ---
 
 ## 📄 License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
