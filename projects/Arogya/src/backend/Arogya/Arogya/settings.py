@@ -37,10 +37,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+
     # Third-party
     "rest_framework",
     "rest_framework.authtoken",
     "corsheaders",
+
     # Project apps
     "accounts",
     "alerts",
@@ -50,6 +52,7 @@ INSTALLED_APPS = [
     "medicines",
     "reports",
     "appointments",
+    "AI",
 ]
 
 MIDDLEWARE = [
