@@ -91,3 +91,14 @@ export async function getSessionDetail(sessionId) {
   if (!res.ok) throw new Error('Failed to fetch session details')
   return res.json()
 }
+
+/**
+ * Doctor: Fetch all sessions for a specific patient
+ */
+export async function getPatientSessions(patientId) {
+  const res = await fetch(`${API_BASE}/rehab/patient-sessions/${patientId}/`, {
+    headers: getAuthHeaders(),
+  })
+  if (!res.ok) throw new Error('Failed to fetch patient sessions')
+  return res.json()
+}
