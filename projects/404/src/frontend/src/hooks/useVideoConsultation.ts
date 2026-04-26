@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { io, Socket } from "socket.io-client";
 import { useAuth } from "./useAuth";
 import { useAudioTranscript } from "./useAudioTranscript";
+import { useEndCallMutation } from "@/apis/callsApi";
+import { useGenerateSummaryMutation } from "@/apis/transcriptApi";
 
 const SOCKET_URL = (
   (import.meta.env.VITE_API_URL as string) || "http://localhost:3000/api"
@@ -50,6 +52,8 @@ export interface ConsultationState {
 
 export function useVideoConsultation(appointmentId?: string) {
   const { user } = useAuth();
+  const [endCallApi] = useEndCallMutation();
+  const [generateSummary] = useGenerateSummaryMutation();
   const [state, setState] = useState<ConsultationState>({
     phase: "checking-permissions",
     cameraPermission: "pending",
@@ -437,9 +441,18 @@ export function useVideoConsultation(appointmentId?: string) {
     );
 
     /** Peer ended the call */
-    socket.on("call:ended", () => {
+    socket.on("call:ended", async () => {
+      const sessionId = callSessionIdRef.current;
       cleanupCall();
       setState((prev) => ({ ...prev, phase: "call-ended" }));
+      
+      if (sessionId) {
+        try {
+          await generateSummary(sessionId).unwrap();
+        } catch (err) {
+          console.error("[useVideoConsultation] Auto-summary failed:", err);
+        }
+      }
     });
 
     socket.on("connect_error", (err) => {
@@ -485,15 +498,19 @@ export function useVideoConsultation(appointmentId?: string) {
     isAloneRef.current = false;
   }, []);
 
-  const endCall = useCallback(() => {
-    if (socketRef.current && callSessionIdRef.current) {
-      socketRef.current.emit("call:end", {
-        callSessionId: callSessionIdRef.current,
-      });
+  const endCall = useCallback(async () => {
+    const sessionId = callSessionIdRef.current;
+    if (sessionId) {
+      try {
+        await endCallApi({ callSessionId: sessionId }).unwrap();
+        await generateSummary(sessionId).unwrap();
+      } catch (err) {
+        console.error("[useVideoConsultation] failed to end call or generate summary:", err);
+      }
     }
     cleanupCall();
     setState((prev) => ({ ...prev, phase: "call-ended", localStream: null }));
-  }, [cleanupCall]);
+  }, [cleanupCall, endCallApi, generateSummary]);
 
   const reconnect = useCallback(() => {
     setState((prev) => ({ ...prev, phase: "reconnecting" }));

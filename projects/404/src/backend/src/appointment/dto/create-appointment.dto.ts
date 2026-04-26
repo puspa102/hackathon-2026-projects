@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { AppointmentStatus } from '@prisma/client';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsOptional,
@@ -33,4 +34,9 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsString()
   reason?: string;
+
+  @ApiPropertyOptional({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isVirtual?: boolean;
 }

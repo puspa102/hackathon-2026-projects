@@ -16,6 +16,7 @@ const appointmentSelect = {
   startTime: true,
   endTime: true,
   reason: true,
+  isVirtual: true,
   createdAt: true,
   doctor: {
     select: {
@@ -65,6 +66,7 @@ export class AppointmentService {
         startTime: new Date(data.startTime),
         endTime: new Date(data.endTime),
         reason: data.reason,
+        isVirtual: data.isVirtual ?? true,
         doctor: { connect: { id: data.doctorId } },
         patient: { connect: { id: data.patientId } },
       },
@@ -149,6 +151,7 @@ export class AppointmentService {
         startTime: data.startTime ? new Date(data.startTime) : undefined,
         endTime: data.endTime ? new Date(data.endTime) : undefined,
         reason: data.reason,
+        isVirtual: data.isVirtual,
       },
       select: appointmentSelect,
     });
