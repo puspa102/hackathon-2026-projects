@@ -60,8 +60,10 @@ export default function StartSession() {
   const exerciseStateRef = useRef(exerciseState);
   const angleHistoryRef = useRef(angleHistory);
   const sessionActiveRef = useRef(sessionActive);
+  const sessionCompletedRef = useRef(sessionCompleted);
   const currentExerciseRef = useRef(null);
   const handleExerciseCompleteRef = useRef();
+  const isCompletingRef = useRef(false);
 
   useEffect(() => {
     exerciseStateRef.current = exerciseState;
@@ -74,6 +76,10 @@ export default function StartSession() {
   useEffect(() => {
     sessionActiveRef.current = sessionActive;
   }, [sessionActive]);
+
+  useEffect(() => {
+    sessionCompletedRef.current = sessionCompleted;
+  }, [sessionCompleted]);
 
   // Mock Fetch Plan if not assigned via location state
   useEffect(() => {
@@ -121,8 +127,9 @@ export default function StartSession() {
 
   useEffect(() => {
     handleExerciseCompleteRef.current = () => {
-      setSessionActive(false); // Pause detection briefly
-      
+      if (isCompletingRef.current) return;
+      isCompletingRef.current = true;
+
       // Save Result
       setResults(prev => [...prev, {
         name: currentExercise?.name || 'Exercise',
@@ -132,11 +139,18 @@ export default function StartSession() {
       }]);
 
       if (plan && currentExerciseIndex < plan.exercises.length - 1) {
-        // Move to next
-        setCurrentExerciseIndex(prev => prev + 1);
-        setExerciseState({ reps: 0, stage: 'down', feedback: 'Get ready', currentAngle: 0 });
+        // Add small delay between exercises
+        setExerciseState({ reps: 0, stage: 'down', feedback: 'Switching exercise...', currentAngle: 0 });
+        
+        setTimeout(() => {
+          setCurrentExerciseIndex(prev => prev + 1);
+          setExerciseState({ reps: 0, stage: 'down', feedback: 'Get ready', currentAngle: 0 });
+          setTimeElapsed(0);
+          isCompletingRef.current = false;
+        }, 1500);
       } else {
         // Session Complete
+        setSessionActive(false);
         const evaluation = generateBodyEvaluation(angleHistoryRef.current);
         setBodyEvaluation(evaluation);
         setSessionCompleted(true);
@@ -197,8 +211,10 @@ export default function StartSession() {
           setExerciseState(newState);
 
           // Check if target reps reached
-          if (newState.reps >= currentExerciseRef.current.targetReps) {
-            handleExerciseCompleteRef.current();
+          if (!sessionCompletedRef.current && newState.reps >= currentExerciseRef.current.targetReps) {
+            if (exerciseStateRef.current.feedback !== 'Switching exercise...') {
+              handleExerciseCompleteRef.current();
+            }
           }
         }
       }
@@ -229,12 +245,8 @@ export default function StartSession() {
   useEffect(() => {
     if (sessionActive) {
       requestRef.current = requestAnimationFrame(detectPose);
-    } else {
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
     }
-    return () => {
-      if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    };
+    return () => cancelAnimationFrame(requestRef.current);
   }, [sessionActive, detectPose]);
 
   const submitSessionReport = async () => {
