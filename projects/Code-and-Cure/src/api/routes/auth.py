@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends
 from passlib.context import CryptContext
 from src.api.models import UserLogin, UserRegister, AuthResponse
 from src.api.jwt_handler import create_token
+from src.api.dependencies import get_current_user
 import uuid
 
 router = APIRouter()
@@ -72,3 +73,11 @@ async def login(credentials: UserLogin):
         access_token=token,
         role=user["role"]
     )
+
+@router.get("/me")
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    """
+    Validates the JWT token and returns the current user's payload.
+    Used by the frontend to restore sessions on page reload.
+    """
+    return current_user

@@ -43,7 +43,8 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
             
             # Mock Person 4 DB Call
             # from src.database.db_client import log_action
-            print(f"[AUDIT] User: {user_id} | Action: {request.method} {request.url.path} | IP: {request.client.host}")
+            client_ip = request.client.host if request.client else "unknown"
+            print(f"[AUDIT] User: {user_id} | Action: {request.method} {request.url.path} | IP: {client_ip}")
             
         return response
 
