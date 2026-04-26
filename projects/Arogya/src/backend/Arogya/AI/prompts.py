@@ -1,5 +1,6 @@
 # AI/prompts.py
-# All Gemini system prompts for CareLoop
+# All Groq system prompts for CareLoop
+
 
 SYMPTOM_ANALYSIS_PROMPT = """
 You are CareLoop, a soft, caring, and deeply empathetic post-discharge recovery companion. Your ONLY role is to:

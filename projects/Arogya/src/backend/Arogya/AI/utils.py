@@ -6,9 +6,9 @@ import re
 import base64
 
 
-def clean_gemini_json(raw_text: str) -> dict:
+def clean_ai_json(raw_text: str) -> dict:
     """
-    Strips markdown code fences from Gemini response
+    Strips markdown code fences from AI response
     and parses clean JSON. Raises ValueError on failure.
     """
     cleaned = re.sub(r"^```json\s*|\s*```$", "", raw_text.strip(), flags=re.MULTILINE).strip()
@@ -16,17 +16,17 @@ def clean_gemini_json(raw_text: str) -> dict:
 
 
 def encode_file_to_base64(file_bytes: bytes) -> str:
-    """Encodes raw file bytes to base64 string for Gemini multimodal input."""
+    """Encodes raw file bytes to base64 string for AI multimodal input."""
     return base64.b64encode(file_bytes).decode("utf-8")
 
 
 def apply_safety_override(result: dict, payload: dict) -> dict:
     """
     Hard safety rule: force 'emergency' status if any critical
-    symptom threshold is met, regardless of Gemini classification.
+    symptom threshold is met, regardless of AI classification.
     """
-    fever     = int(payload.get("fever", 0))
-    pain      = int(payload.get("pain_level", 0))
+    fever     = int(payload.get("fever") or 0)
+    pain      = int(payload.get("pain_level") or 0)
     breathing = payload.get("breathing", "none")
 
     if breathing == "severe" or fever >= 8 or pain >= 9:
@@ -41,7 +41,7 @@ def apply_safety_override(result: dict, payload: dict) -> dict:
 
 def validate_mime_type(content_type: str) -> str | None:
     """
-    Returns a normalized MIME type for Gemini if the file type is allowed.
+    Returns a normalized MIME type if the file type is allowed.
     Returns None if the file type is not supported.
     """
     ALLOWED = {
@@ -57,7 +57,7 @@ def validate_mime_type(content_type: str) -> str | None:
 def build_patient_context_block(patient_context: dict) -> str:
     """
     Formats patient context dict into a readable string
-    to inject into the Gemini chat system prompt.
+    to inject into the AI chat system prompt.
     """
     if not patient_context:
         return ""

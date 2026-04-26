@@ -80,10 +80,10 @@ def analyze_report_with_groq(text):
 
 def analyze_image_report_with_groq(image_file):
     """
-    Uses Groq's Llama 4 vision model to extract structured data from an image of a medical report.
+    Uses Groq's Llama 3.2 vision model to extract structured data from an image of a medical report.
     """
     client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
-    model = "meta-llama/llama-4-scout-17b-16e-instruct"
+    model = "llama-3.2-11b-vision-preview"
 
     # Read and encode image
     image_content = image_file.read()
@@ -189,7 +189,7 @@ def chat_with_groq(messages, patient_context=None):
         system_content += build_patient_context_block(patient_context)
 
     # Format messages for Groq (Llama 3 usually expects role/content)
-    # The serializer provides 'role' and 'parts' (Gemini style)
+    # The serializer provides 'role' and 'parts'
     formatted_messages = [{"role": "system", "content": system_content}]
     
     for msg in messages:

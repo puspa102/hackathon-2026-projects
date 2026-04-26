@@ -87,11 +87,18 @@ class PatientContextSerializer(serializers.Serializer):
 
 
 class RecoveryChatSerializer(serializers.Serializer):
-    messages        = ChatMessageSerializer(many=True, min_length=1, required=False)
+    messages        = ChatMessageSerializer(many=True, required=False)
     message         = serializers.CharField(required=False)
     patient_context = PatientContextSerializer(required=False)
 
     def validate_messages(self, messages):
+        if not messages:
+            return messages
         if messages[-1]["role"] != "user":
             raise serializers.ValidationError("The last message must have role 'user'.")
         return messages
+
+    def validate(self, data):
+        if not data.get("messages") and not data.get("message"):
+            raise serializers.ValidationError("Either 'message' or 'messages' must be provided.")
+        return data

@@ -103,6 +103,7 @@ class SymptomAnalysisAPIView(APIView):
 
     def post(self, request):
         serializer = SymptomAnalysisSerializer(data=request.data)
+
         if serializer.is_valid():
             try:
                 result = analyze_symptoms_with_groq(serializer.validated_data)
@@ -110,7 +111,6 @@ class SymptomAnalysisAPIView(APIView):
             except Exception as e:
                 return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-        print("Symptom Analysis Serializer Errors:", serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class RecoveryChatAPIView(APIView):
