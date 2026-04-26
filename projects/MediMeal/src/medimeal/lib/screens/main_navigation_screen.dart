@@ -12,6 +12,7 @@ import 'package:medimeal/services/notification_service.dart';
 import 'package:medimeal/services/timing_workflow_service.dart';
 import 'package:medimeal/services/weekly_meal_impact_service.dart';
 import 'package:medimeal/services/weekly_tracking_workflow_service.dart';
+import 'package:medimeal/widgets/app_snackbar.dart';
 
 import '../models/active_workflow.dart';
 import '../models/care_state.dart';
@@ -41,6 +42,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   WeeklyTrackingWorkflow? activeWeeklyTrackingWorkflow;
   Medication? latestMedication;
 
+  bool shouldOfferHydrationRoutine = false;
+  bool shouldOfferWeeklyTracking = false;
+
   String? latestSummary;
   WorkflowSuggestion? latestSuggestion;
   CareState? latestCareState;
@@ -67,17 +71,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         userMedications.add(result);
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${result.template.name} added with daily reminder at ${result.reminderTimeLabel}',
-          ),
-        ),
+      await NotificationService.scheduleDailyMedicationReminder(
+        id: result.id.hashCode,
+        medicationName: result.template.name,
+        hour: result.reminderHour,
+        minute: result.reminderMinute,
+      );
+
+      AppSnackbar.success(
+        context,
+        '${result.template.name} added with daily reminder at ${result.reminderTimeLabel}',
       );
     }
   }
 
   void onMedicationTaken(UserMedication userMedication) {
+    _markMedicationTaken(userMedication.id);
     final medication = Medication(
       id: userMedication.id,
       name: userMedication.template.name,
@@ -95,14 +104,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     final result = WorkflowEngine.processMedicationTaken(medication);
 
-    TimingWorkflow? timingWorkflow;
+    TimingWorkflow? newTimingWorkflow = activeTimingWorkflow;
 
     if (medication.workflowType == 'timing_sensitive' &&
         medication.autoStartWorkflow) {
-      timingWorkflow = TimingWorkflowService.createFromMedication(medication);
+      newTimingWorkflow =
+          TimingWorkflowService.createFromMedication(medication);
 
       Future.delayed(
-        timingWorkflow.eatAfter.difference(DateTime.now()),
+        newTimingWorkflow.eatAfter.difference(DateTime.now()),
         () async {
           await NotificationService.showTimingReadyNotification(
             medicationName: medication.name,
@@ -119,7 +129,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       latestSummary = result.nextStepSummary;
       latestSuggestion = result.suggestion;
       latestCareState = result.careState;
-      activeTimingWorkflow = timingWorkflow;
+      activeTimingWorkflow = newTimingWorkflow;
+
+      if (medication.workflowType == 'support_routine' &&
+          activeHydrationWorkflow == null) {
+        shouldOfferHydrationRoutine = true;
+      }
+
+      if (medication.workflowType == 'weekly_tracking' &&
+          activeWeeklyTrackingWorkflow == null) {
+        shouldOfferWeeklyTracking = true;
+      }
+
       selectedIndex = 0;
     });
   }
@@ -138,25 +159,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       activeWorkflows.add(newWorkflow);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Workflow activated')),
-    );
+    AppSnackbar.success(context, 'Workflow activated');
   }
 
   void startHydrationRoutine() {
-    if (latestMedication == null) return;
-
     final workflow = HydrationWorkflowService.create(
-      medicationName: latestMedication!.name,
+      medicationName: 'Amoxicillin',
     );
 
     setState(() {
       activeHydrationWorkflow = workflow;
+      shouldOfferHydrationRoutine = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Hydration routine started')),
-    );
+    AppSnackbar.info(context, 'Hydration routine started');
   }
 
   void logHydrationGlass() {
@@ -169,42 +185,30 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       activeHydrationWorkflow = updated;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          updated.isCompleted
-              ? 'Hydration goal completed for today'
-              : 'Logged 1 glass',
-        ),
-      ),
-    );
+    if (updated.isCompleted) {
+      AppSnackbar.success(context, 'Hydration goal completed for today');
+    } else {
+      AppSnackbar.info(context, 'Logged 1 glass');
+    }
   }
 
   void startWeeklyTracking() {
-    if (latestMedication == null) return;
-
     final workflow = WeeklyTrackingWorkflowService.create(
-      medicationName: latestMedication!.name,
+      medicationName: 'Allopurinol',
     );
 
     setState(() {
       activeWeeklyTrackingWorkflow = workflow;
+      shouldOfferWeeklyTracking = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Weekly tracking started')),
-    );
+    AppSnackbar.info(context, 'Weekly tracking started');
   }
 
-  void logMealForWeeklyTracking(MealPlan mealPlan) {
+  void logMealForWeeklyTracking(List<String> ingredientsUsed) {
     if (activeWeeklyTrackingWorkflow == null) return;
 
-    print('ingredientsUsed: ${mealPlan.ingredientsUsed}');
-
-    final impact = WeeklyMealImpactService.evaluate(mealPlan.ingredientsUsed);
-    print('addedScore: ${impact.addedScore}');
-    print('trackedIngredients: ${impact.trackedIngredients}');
-
+    final impact = WeeklyMealImpactService.evaluate(ingredientsUsed);
     final updated = WeeklyTrackingWorkflowService.applyMealImpact(
       activeWeeklyTrackingWorkflow!,
       impact.addedScore,
@@ -214,9 +218,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       activeWeeklyTrackingWorkflow = updated;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(impact.summary)),
-    );
+    AppSnackbar.warning(context, impact.summary);
+  }
+
+  void _markMedicationTaken(String medicationId) {
+    final index = userMedications.indexWhere((m) => m.id == medicationId);
+    if (index == -1) return;
+
+    setState(() {
+      userMedications[index] = userMedications[index].copyWith(
+        isTakenToday: true,
+      );
+    });
   }
 
   @override
@@ -231,6 +244,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         activeTimingWorkflow: activeTimingWorkflow,
         activeHydrationWorkflow: activeHydrationWorkflow,
         activeWeeklyTrackingWorkflow: activeWeeklyTrackingWorkflow,
+        shouldOfferHydrationRoutine: shouldOfferHydrationRoutine,
+        shouldOfferWeeklyTracking: shouldOfferWeeklyTracking,
         onStartHydrationRoutine: startHydrationRoutine,
         onLogHydrationGlass: logHydrationGlass,
         onStartWeeklyTracking: startWeeklyTracking,
