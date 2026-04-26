@@ -1,68 +1,38 @@
-import React, { useState } from 'react';
-import axios from 'axios';
+import { Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import Results from './pages/Results'
 
-function App() {
-  const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState(null);
-
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-    }
-  };
-
-  const handleAnalyze = async () => {
-    if (!file) return;
-    setLoading(true);
-    setError(null);
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('insurance_provider', 'BlueCross');
-
-    try {
-      const response = await axios.post('http://localhost:8000/api/bills/analyze', formData);
-      setResult(response.data);
-    } catch (err) {
-      console.error(err);
-      setError("Backend connection failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+export default function App() {
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '600px', margin: 'auto' }}>
-      <h1 style={{ color: '#0f1f35' }}>MediClaim AI (v0.1)</h1>
-      <p style={{ color: '#4a6585' }}>Minimal uploader test.</p>
-      
-      <div style={{ border: '2px dashed #dde3ec', padding: '40px', textAlign: 'center', marginBottom: '20px', borderRadius: '12px' }}>
-        <input type="file" onChange={handleFileChange} accept=".pdf" />
-        {file && <p style={{ marginTop: '10px', fontSize: '14px' }}>Selected: {file.name}</p>}
-      </div>
-
-      <button 
-        onClick={handleAnalyze} 
-        disabled={!file || loading}
-        style={{ width: '100%', padding: '12px', background: '#0f1f35', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-      >
-        {loading ? 'Analyzing...' : 'Analyze Bill'}
-      </button>
-
-      {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}
-
-      {result && (
-        <div style={{ marginTop: '40px' }}>
-          <h3>Analysis Result (JSON):</h3>
-          <pre style={{ background: '#f4f6f9', padding: '20px', borderRadius: '8px', overflow: 'auto', fontSize: '12px' }}>
-            {JSON.stringify(result, null, 2)}
-          </pre>
+    <div className="min-h-screen flex flex-col animated-bg">
+      {/* Navbar */}
+      <nav className="sticky top-0 z-[100] bg-white/[0.92] backdrop-blur-md border-b border-line px-10 h-[60px] flex items-center justify-between">
+        <a href="/" className="flex items-center gap-2.5 font-serif font-bold text-[18px] text-navy no-underline">
+          <div className="w-8 h-8 bg-navy rounded-lg flex items-center justify-center text-white text-[16px]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48 2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48 2.83-2.83"/>
+            </svg>
+          </div>
+          MediClaim AI
+        </a>
+        <div className="flex items-center gap-2">
+          <a href="/" className="px-3.5 py-1.5 text-[14px] font-medium text-slate hover:text-navy hover:bg-paper rounded-md transition-all">Home</a>
+          <span className="px-2.5 py-1 bg-navy text-white rounded-full text-[12px] font-semibold font-mono tracking-[0.03em]">v1.0</span>
         </div>
-      )}
-    </div>
-  );
-}
+      </nav>
 
-export default App;
+      {/* Main Content */}
+      <main className="flex-grow">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/results" element={<Results />} />
+        </Routes>
+      </main>
+
+      {/* HTML Footer */}
+      <footer className="border-t border-line py-6 px-10 text-center text-xs text-slate-light bg-white mt-auto">
+        <p>© 2026 MediClaim AI. Built for the future of healthcare.</p>
+      </footer>
+    </div>
+  )
+}

@@ -6,50 +6,20 @@ export default {
   ],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-      },
       colors: {
-        brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
-        },
-        surface: {
-          50: '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          700: '#1e293b',
-          800: '#0f172a',
-          900: '#020617',
-        }
+        navy: { DEFAULT: '#0f1f35', mid: '#1a3050', light: '#243d5c' },
+        slate: { DEFAULT: '#4a6585', light: '#7a97b8' },
+        paper: '#f4f6f9',
+        line: { DEFAULT: '#dde3ec', mid: '#c4cdd9' },
+        teal: { DEFAULT: '#0d9488', light: '#14b8a6', bg: '#f0fdfa' },
+        amber: { DEFAULT: '#d97706', bg: '#fffbeb' },
+        red: { DEFAULT: '#dc2626', bg: '#fff1f1' },
       },
-      animation: {
-        'fade-in': 'fadeIn 0.5s ease-out',
-        'slide-up': 'slideUp 0.5s ease-out',
-        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      fontFamily: {
+        sans: ['"DM Sans"', 'sans-serif'],
+        mono: ['"DM Mono"', 'monospace'],
+        serif: ['"Lora"', 'serif'],
       },
-      keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' },
-        },
-        slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(20px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
-        },
-      },
-      backdropBlur: {
-        xs: '2px',
-      }
     },
   },
   plugins: [],
