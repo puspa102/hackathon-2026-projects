@@ -3,11 +3,13 @@ import 'package:medimeal/models/hydration_workflow.dart';
 import 'package:medimeal/models/medications.dart';
 import 'package:medimeal/models/timing_workflow.dart';
 import 'package:medimeal/models/user_medication.dart';
+import 'package:medimeal/models/weekly_tracking_workflow.dart';
 import 'package:medimeal/screens/add_medication_screen.dart';
 import 'package:medimeal/screens/meals_tab.dart';
 import 'package:medimeal/services/hydration_workflow_service.dart';
 import 'package:medimeal/services/notification_service.dart';
 import 'package:medimeal/services/timing_workflow_service.dart';
+import 'package:medimeal/services/weekly_tracking_workflow_service.dart';
 
 import '../models/active_workflow.dart';
 import '../models/care_state.dart';
@@ -34,12 +36,29 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   TimingWorkflow? activeTimingWorkflow;
   HydrationWorkflow? activeHydrationWorkflow;
+  WeeklyTrackingWorkflow? activeWeeklyTrackingWorkflow;
   Medication? latestMedication;
 
   String? latestSummary;
   WorkflowSuggestion? latestSuggestion;
   CareState? latestCareState;
   List<ActiveWorkflow> activeWorkflows = [];
+
+  void startWeeklyTracking() {
+    if (latestMedication == null) return;
+
+    final workflow = WeeklyTrackingWorkflowService.create(
+      medicationName: latestMedication!.name,
+    );
+
+    setState(() {
+      activeWeeklyTrackingWorkflow = workflow;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Weekly tracking started')),
+    );
+  }
 
   @override
   void initState() {
@@ -188,6 +207,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         activeHydrationWorkflow: activeHydrationWorkflow,
         onStartHydrationRoutine: startHydrationRoutine,
         onLogHydrationGlass: logHydrationGlass,
+        activeWeeklyTrackingWorkflow: activeWeeklyTrackingWorkflow,
+        onStartWeeklyTracking: startWeeklyTracking,
       ),
       MedicationsTab(
         medications: userMedications,
@@ -202,6 +223,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         latestMedication: latestMedication,
         activeTimingWorkflow: activeTimingWorkflow,
         activeHydrationWorkflow: activeHydrationWorkflow,
+        activeWeeklyTrackingWorkflow: activeWeeklyTrackingWorkflow,
       ),
     ];
 
