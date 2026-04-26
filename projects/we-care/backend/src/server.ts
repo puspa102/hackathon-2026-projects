@@ -6,6 +6,7 @@ import specialistsRouter from './routes/specialists';
 import referralsRouter from './routes/referrals';
 import patientRouter from './routes/patient';
 import authRouter from './routes/v1/auth';
+import doctorsRouter from './routes/v1/doctors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -22,6 +23,7 @@ app.use('/api/specialists', specialistsRouter);
 app.use('/api/referrals', referralsRouter);
 app.use('/api/patient', patientRouter);
 app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/doctors', doctorsRouter);
 
 app.listen(PORT, () => {
   console.log(`RefAI backend running on port ${PORT}`);
