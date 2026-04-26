@@ -8,12 +8,18 @@ import {
   SafeAreaView,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { authStorage } from "@/services/storage";
 import { API_BASE_URL } from "@/services/config";
 import { useAuth } from "@/services/AuthContext";
+import { api } from "@/services/api";
+import { useRef } from "react";
 
 const BLUE = "#2A7B88";
 const LIGHT_TEAL = "#E6F2F4";
@@ -70,6 +76,34 @@ export default function RecoveryStatusScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showAiChat, setShowAiChat] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<{ role: string; content: string }[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const sendChatMessage = async () => {
+    if (!chatInput.trim()) return;
+    
+    const userMsg = { role: "user", content: chatInput };
+    setChatMessages(prev => [...prev, userMsg]);
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      const res = await api.aiRecoveryChat({
+        condition: data?.latest_checkin?.symptoms || "General Health Management",
+        status: data?.latest_checkin?.guidance || "Normal",
+        message: chatInput,
+        history: chatMessages
+      });
+      setChatMessages(prev => [...prev, { role: "assistant", content: res.response }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: "assistant", content: "I'm sorry, I'm having trouble connecting right now." }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -108,7 +142,7 @@ export default function RecoveryStatusScreen() {
             ).toUpperCase() || "U"}
           </Text>
         </View>
-        <Text style={styles.headerTitle}>CareConnect</Text>
+        <Text style={styles.headerTitle}>Arogya</Text>
         <MaterialIcons name="notifications-none" size={24} color="#333" />
       </View>
 
@@ -134,6 +168,19 @@ export default function RecoveryStatusScreen() {
             Here is your recovery overview for today.
           </Text>
 
+          <TouchableOpacity 
+            style={[styles.emergencyBtn, { backgroundColor: BLUE, marginBottom: 10 }]}
+            onPress={() => setShowAiChat(true)}
+          >
+            <MaterialIcons
+              name="auto-awesome"
+              size={18}
+              color="#fff"
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.emergencyBtnText}>AI Recovery Companion</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.emergencyBtn}>
             <MaterialIcons
               name="emergency"
@@ -143,7 +190,6 @@ export default function RecoveryStatusScreen() {
             />
             <Text style={styles.emergencyBtnText}>EMERGENCY SOS</Text>
           </TouchableOpacity>
-
           {/* Recovery Status Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -310,6 +356,78 @@ export default function RecoveryStatusScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
+
+      {/* AI Chat Modal */}
+      <Modal
+        visible={showAiChat}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAiChat(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContent, { height: "90%" }]}>
+            <View style={styles.modalHeader}>
+              <MaterialIcons name="auto-awesome" size={24} color={BLUE} />
+              <Text style={styles.modalTitle}>AI Recovery Companion</Text>
+              <TouchableOpacity onPress={() => setShowAiChat(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView 
+              style={styles.modalScroll}
+              contentContainerStyle={{ paddingBottom: 20 }}
+              ref={scrollRef}
+              onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+            >
+              <Text style={styles.welcomeText}>
+                Hello! I'm your AI recovery companion. How are you feeling right now?
+              </Text>
+              {chatMessages.map((msg, i) => (
+                <View 
+                  key={i} 
+                  style={[
+                    styles.messageBubble, 
+                    msg.role === "user" ? styles.userBubble : styles.assistantBubble
+                  ]}
+                >
+                  <Text style={[
+                    styles.messageText,
+                    msg.role === "user" ? styles.userText : styles.assistantText
+                  ]}>
+                    {String(msg.content)}
+                  </Text>
+                </View>
+              ))}
+              {chatLoading && (
+                <View style={styles.loadingBubble}>
+                  <ActivityIndicator size="small" color={BLUE} />
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Type your message..."
+                value={chatInput}
+                onChangeText={setChatInput}
+                multiline
+              />
+              <TouchableOpacity 
+                style={styles.sendBtn} 
+                onPress={sendChatMessage}
+                disabled={chatLoading || !chatInput.trim()}
+              >
+                <MaterialIcons name="send" size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -458,4 +576,98 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   completeBtnText: { color: "#fff", fontSize: 14, fontWeight: "bold" },
+  // Modal & Chat Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 12,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111",
+  },
+  modalScroll: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: "#64748B",
+    backgroundColor: "#F1F5F9",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  messageBubble: {
+    maxWidth: "80%",
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  userBubble: {
+    alignSelf: "flex-end",
+    backgroundColor: BLUE,
+    borderBottomRightRadius: 4,
+  },
+  assistantBubble: {
+    alignSelf: "flex-start",
+    backgroundColor: "#F1F5F9",
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  userText: {
+    color: "#fff",
+  },
+  assistantText: {
+    color: "#111",
+  },
+  loadingBubble: {
+    alignSelf: "flex-start",
+    padding: 12,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: "#F8F9FA",
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    maxHeight: 100,
+    fontSize: 14,
+  },
+  sendBtn: {
+    backgroundColor: BLUE,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });

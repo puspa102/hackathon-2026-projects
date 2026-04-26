@@ -71,7 +71,7 @@ export default function DailyCheckInScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <CheckInHeader brandName="CareLoop" />
+      <CheckInHeader brandName="Arogya" />
 
       <ScrollView
         style={styles.scrollView}

@@ -13,7 +13,36 @@ class ReportUploadView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
-        serializer.save(patient=self.request.user)
+        report = serializer.save(patient=self.request.user)
+        
+        # Trigger text extraction
+        from AI.services import AIService
+        ai_service = AIService()
+        
+        try:
+            extracted_text = ai_service.extract_text(report.file.path, report.file_type)
+            if extracted_text:
+                report.extracted_text = extracted_text
+                report.save()
+                
+                # Automatically extract medications and add to patient profile
+                meds = ai_service.extract_medications(extracted_text)
+                if meds:
+                    from medications.models import Medicine
+                    for med_data in meds:
+                        Medicine.objects.get_or_create(
+                            patient=self.request.user,
+                            name=med_data.get('name'),
+                            defaults={
+                                'dosage': med_data.get('dosage', 'As directed'),
+                                'frequency': med_data.get('frequency', 'daily'),
+                                'instructions': med_data.get('instructions', ''),
+                                'start_date': timezone.now().date(),
+                                'is_active': True
+                            }
+                        )
+        except Exception as e:
+            print(f"Extraction error: {e}")
 
 
 class ReportListView(generics.ListAPIView):

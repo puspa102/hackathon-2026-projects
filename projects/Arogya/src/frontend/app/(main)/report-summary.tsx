@@ -14,6 +14,8 @@ import { useRouter } from "expo-router";
 import { authStorage } from "@/services/storage";
 import { API_BASE_URL } from "@/services/config";
 import { useAuth } from "@/services/AuthContext";
+import { api } from "@/services/api";
+import { Modal } from "react-native";
 
 const PRIMARY = "#2A7B88";
 const DARK_TEAL = "#1B5C66";
@@ -110,6 +112,26 @@ export default function ReportSummaryScreen() {
   const [latestCheckin, setLatestCheckin] = useState<CheckIn | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
+
+  const activeMeds = medicines.filter(isActive);
+  const latestReport = reports[0] ?? null;
+
+  const handleAIReportAnalysis = async () => {
+    if (!latestReport?.extracted_text) return;
+    setAiLoading(true);
+    setShowAiModal(true);
+    try {
+      const res = await api.aiAnalyzeReport(latestReport.extracted_text);
+      setAiAnalysis(res.analysis);
+    } catch (err: any) {
+      setAiAnalysis("Error generating analysis. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const fetchAll = useCallback(async () => {
     try {
@@ -137,13 +159,11 @@ export default function ReportSummaryScreen() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchAll();
   }, [fetchAll]);
-
-  const activeMeds = medicines.filter(isActive);
-  const latestReport = reports[0] ?? null;
   const riskColor =
     latestCheckin?.risk_level === "emergency"
       ? "#DC2626"
@@ -163,7 +183,7 @@ export default function ReportSummaryScreen() {
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <Text style={styles.brand}>CareConnect</Text>
+        <Text style={styles.brand}>Arogya</Text>
         <TouchableOpacity>
           <MaterialIcons name="notifications-none" size={26} color="#111" />
         </TouchableOpacity>
@@ -273,6 +293,15 @@ export default function ReportSummaryScreen() {
               <Text style={styles.extractedText} numberOfLines={8}>
                 {latestReport.extracted_text}
               </Text>
+              
+              <TouchableOpacity
+                style={styles.deepAnalysisBtn}
+                onPress={handleAIReportAnalysis}
+              >
+                <MaterialIcons name="auto-awesome" size={18} color="#fff" />
+                <Text style={styles.deepAnalysisBtnText}>Deep AI Analysis</Text>
+              </TouchableOpacity>
+
               {latestReport.verified_by && (
                 <View style={styles.verifiedRow}>
                   <MaterialIcons
@@ -452,8 +481,46 @@ export default function ReportSummaryScreen() {
           </View>
 
           <View style={{ height: 48 }} />
-        </ScrollView>
+      </ScrollView>
       )}
+
+      {/* AI Analysis Modal */}
+      <Modal
+        visible={showAiModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAiModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <MaterialIcons name="auto-awesome" size={24} color={PRIMARY} />
+              <Text style={styles.modalTitle}>AI Report Analysis</Text>
+              <TouchableOpacity onPress={() => setShowAiModal(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {aiLoading ? (
+                <View style={styles.modalLoading}>
+                  <ActivityIndicator size="large" color={PRIMARY} />
+                  <Text style={styles.modalLoadingText}>Analyzing your report with AI...</Text>
+                </View>
+              ) : (
+                <Text style={styles.analysisText}>{aiAnalysis}</Text>
+              )}
+            </ScrollView>
+            {!aiLoading && (
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setShowAiModal(false)}
+              >
+                <Text style={styles.modalCloseBtnText}>Close Analysis</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -658,4 +725,74 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   lifeDesc: { fontSize: 12, color: "rgba(255,255,255,0.75)", lineHeight: 18 },
+  deepAnalysisBtn: {
+    backgroundColor: PRIMARY,
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 12,
+    gap: 8,
+  },
+  deepAnalysisBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    gap: 12,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111",
+  },
+  modalScroll: {
+    marginBottom: 20,
+  },
+  modalLoading: {
+    padding: 40,
+    alignItems: "center",
+    gap: 16,
+  },
+  modalLoadingText: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+  },
+  analysisText: {
+    fontSize: 15,
+    color: "#333",
+    lineHeight: 24,
+  },
+  modalCloseBtn: {
+    backgroundColor: PRIMARY,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  modalCloseBtnText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
 });

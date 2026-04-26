@@ -10,10 +10,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useRouter } from "expo-router";
 
 import { DoctorHeader } from "@/components/doctor/doctor-header";
 import { useAuth } from "@/services/AuthContext";
 import api from "@/services/api";
+import { router } from "expo-router";
 
 interface UrgentAlert {
   patient_id: number;
@@ -73,6 +75,7 @@ const APPOINTMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const { state } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -157,6 +160,28 @@ export default function DashboardScreen() {
             {state.user?.first_name || state.user?.username || "Doctor"}
           </Text>
           <Text style={styles.title}>Your Dashboard</Text>
+        </View>
+
+        {/* AI Assistant Section */}
+        <View style={styles.aiAssistantSection}>
+          <View style={styles.aiAssistantHeader}>
+            <MaterialIcons name="auto-awesome" size={20} color="#0284C7" />
+            <Text style={styles.aiAssistantTitle}>AI ASSISTANT</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.aiAssistantCard}
+            onPress={() => router.push("/(main)/report-summary")}
+          >
+            <View style={styles.aiAssistantInfo}>
+              <Text style={styles.aiAssistantCardTitle}>AI Report Deep-Dive</Text>
+              <Text style={styles.aiAssistantCardDesc}>
+                Analyze complex discharge reports and extract key health markers instantly.
+              </Text>
+            </View>
+            <View style={styles.aiAssistantIconBg}>
+              <MaterialIcons name="description" size={24} color="#0284C7" />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {error && (
@@ -493,7 +518,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   alertDesc: { fontSize: 14, fontWeight: "500" },
-  reviewButton: { color: "#0284C7", fontWeight: "700", fontSize: 15 },
+  reviewButton: { color: "#2A7B88", fontWeight: "700", fontSize: 15 },
 
   consultationsContainer: {
     backgroundColor: "#FFFFFF",
@@ -518,7 +543,7 @@ const styles = StyleSheet.create({
     marginLeft: 64,
   },
   timeBlock: { alignItems: "center", width: 48, marginRight: 16 },
-  timeText: { fontSize: 16, fontWeight: "700", color: "#0284C7" },
+  timeText: { fontSize: 16, fontWeight: "700", color: "#2A7B88" },
   ampmText: { fontSize: 12, fontWeight: "600", color: "#94A3B8" },
   consultContent: { flex: 1 },
   consultName: {
@@ -577,12 +602,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#0284C7",
+    borderColor: "#2A7B88",
     borderRadius: 8,
     paddingVertical: 10,
     alignItems: "center",
   },
-  verifyButtonText: { color: "#0284C7", fontWeight: "700", fontSize: 15 },
+  verifyButtonText: { color: "#2A7B88", fontWeight: "700", fontSize: 15 },
   eyeButton: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
@@ -591,5 +616,58 @@ const styles = StyleSheet.create({
     width: 44,
     alignItems: "center",
     justifyContent: "center",
+  },
+  aiAssistantSection: {
+    marginBottom: 28,
+  },
+  aiAssistantHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  aiAssistantTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#64748B",
+    letterSpacing: 1,
+  },
+  aiAssistantCard: {
+    flexDirection: "row",
+    backgroundColor: "#EAF3FA",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1E4F3",
+  },
+  aiAssistantInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  aiAssistantCardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1B5C66",
+    marginBottom: 4,
+  },
+  aiAssistantCardDesc: {
+    fontSize: 13,
+    color: "#1B5C66",
+    lineHeight: 18,
+    opacity: 0.8,
+  },
+  aiAssistantIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import { useAuth } from "@/services/AuthContext";
+import { notificationService } from "@/services/notifications";
 import { CheckInCard } from "@/components/home/check-in-card";
 import { DoctorMessageCard } from "@/components/home/doctor-message-card";
 import { EmergencyButton } from "@/components/home/emergency-button";
@@ -70,6 +71,16 @@ export default function HomeScreen() {
     try {
       const data = await fetchDashboard();
       setDashboard(data);
+      
+      // Handle Notifications & Alarms
+      const hasPerms = await notificationService.requestPermissions();
+      if (hasPerms && data.next_medicine) {
+        await notificationService.cancelAll(); // Clear old ones to prevent duplicates
+        await notificationService.scheduleMedicationAlarm(
+          data.next_medicine.name,
+          data.next_medicine.reminder_time
+        );
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load dashboard");
     } finally {
@@ -101,8 +112,8 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={["#16a085"]}
-            tintColor="#16a085"
+            colors={["#2A7B88"]}
+            tintColor="#2A7B88"
           />
         }
       >
@@ -119,7 +130,7 @@ export default function HomeScreen() {
         {/* Loading State */}
         {loading && !dashboard ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#16a085" />
+            <ActivityIndicator size="large" color="#2A7B88" />
           </View>
         ) : error && !dashboard ? (
           /* Error State */
@@ -171,6 +182,35 @@ export default function HomeScreen() {
               actionLabel={dashboard?.today_checkin_done ? "View" : "Start"}
               onPress={() => router.push("/(tabs)/check-in")}
             />
+
+            {/* AI Health Suite */}
+            <View style={styles.aiSection}>
+              <View style={styles.aiHeader}>
+                <MaterialIcons name="auto-awesome" size={20} color="#16a085" />
+                <Text style={styles.aiTitle}>AI HEALTH SUITE</Text>
+              </View>
+              <View style={styles.aiGrid}>
+                <TouchableOpacity 
+                  style={styles.aiCard}
+                  onPress={() => router.push("/(main)/risk-assessment")}
+                >
+                  <View style={[styles.aiIconBg, { backgroundColor: "#E6F4F1" }]}>
+                    <MaterialIcons name="psychology" size={24} color="#16a085" />
+                  </View>
+                  <Text style={styles.aiCardLabel}>Symptom Analysis</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.aiCard}
+                  onPress={() => router.push("/(main)/recovery-status")}
+                >
+                  <View style={[styles.aiIconBg, { backgroundColor: "#EBF5FF" }]}>
+                    <MaterialIcons name="forum" size={24} color="#0284C7" />
+                  </View>
+                  <Text style={styles.aiCardLabel}>Recovery Chat</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {/* Unread Alerts Banner */}
             {dashboard?.unread_alerts_count > 0 && (
@@ -366,5 +406,51 @@ const styles = StyleSheet.create({
     color: "#95a5a6",
     textAlign: "center",
     paddingVertical: 8,
+  },
+  aiSection: {
+    backgroundColor: "#fff",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  aiHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  aiTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#64748B",
+    letterSpacing: 1,
+  },
+  aiGrid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  aiCard: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
+  },
+  aiIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aiCardLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1E293B",
+    textAlign: "center",
   },
 });

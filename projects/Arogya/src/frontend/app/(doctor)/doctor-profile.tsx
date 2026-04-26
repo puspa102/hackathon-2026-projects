@@ -128,7 +128,7 @@ export default function DoctorProfileScreen() {
         >
           <MaterialIcons name="local-hospital" size={18} color="#fff" />
         </View>
-        <Text style={styles.headerTitle}>CareConnect</Text>
+        <Text style={styles.headerTitle}>Arogya</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>

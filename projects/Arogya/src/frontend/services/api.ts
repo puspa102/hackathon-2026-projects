@@ -10,6 +10,19 @@ interface ApiResponse<T> {
   [key: string]: any;
 }
 
+export interface AISymptomResponse {
+  analysis: string;
+  risk_level: string;
+}
+
+export interface AIReportAnalysisResponse {
+  analysis: string;
+}
+
+export interface AIChatResponse {
+  response: string;
+}
+
 interface RequestOptions {
   headers?: Record<string, string>;
   body?: any;
@@ -124,7 +137,7 @@ class ApiClient {
 
       const headers: Record<string, string> = {};
       if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+        headers["Authorization"] = `Token ${token}`;
       }
 
       const response = await fetch(url, {
@@ -403,6 +416,32 @@ class ApiClient {
     return this.request(`/reports/${id}/`, "DELETE");
   }
 
+  // ==================== AI Endpoints ====================
+
+  async aiSymptomCheck(symptoms: string) {
+    return this.request<AISymptomResponse>("/ai/symptom-check/", "POST", { symptoms });
+  }
+
+  async aiAnalyzeReport(reportText?: string, imageFile?: any) {
+    if (imageFile) {
+      return this.uploadFile<AIReportAnalysisResponse>("/ai/analyze-report/", imageFile, "image", {
+        report_text: reportText || "",
+      });
+    }
+    return this.request<AIReportAnalysisResponse>("/ai/analyze-report/", "POST", {
+      report_text: reportText,
+    });
+  }
+
+  async aiRecoveryChat(data: {
+    condition: string;
+    status: string;
+    message: string;
+    history?: { role: string; content: string }[];
+  }) {
+    return this.request<AIChatResponse>("/ai/recovery-chat/", "POST", data);
+  }
+
   // ==================== Utility Methods ====================
 
   /**
@@ -424,6 +463,10 @@ class ApiClient {
    */
   setTimeout(timeout: number): void {
     this.timeout = timeout;
+  }
+
+  async getDoctors() {
+    return this.request<any[]>("/accounts/doctors/");
   }
 }
 

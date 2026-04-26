@@ -29,7 +29,7 @@ import { Platform } from "react-native";
  */
 
 // ⚠️ UPDATE THIS WITH YOUR LOCAL IP ADDRESS OR SERVER URL
-const LOCAL_IP = "192.168.100.40"; // Your current IP address
+const LOCAL_IP = "192.168.18.3"; // Your current IP address
 const PORT = "8000";
 
 // Determine the API URL based on the platform

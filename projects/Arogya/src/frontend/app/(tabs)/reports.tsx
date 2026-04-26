@@ -15,6 +15,9 @@ import { useRouter } from "expo-router";
 import { authStorage } from "@/services/storage";
 import { API_BASE_URL } from "@/services/config";
 import { useAuth } from "@/services/AuthContext";
+import { api } from "@/services/api";
+import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
 
 const PRIMARY = "#2A7B88";
 const DARK_TEAL = "#1B5C66";
@@ -127,6 +130,82 @@ export default function ReportsScreen() {
     fetchReports();
   }, [fetchReports]);
 
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFileName, setUploadingFileName] = useState("");
+
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        await uploadFile(file, file.mimeType?.includes("pdf") ? "pdf" : "image");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to pick document");
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Denied", "Camera permission is required.");
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const file = result.assets[0];
+        await uploadFile({
+          uri: file.uri,
+          name: file.fileName || `photo_${Date.now()}.jpg`,
+          type: "image/jpeg",
+        }, "image");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to take photo");
+    }
+  };
+
+  const uploadFile = async (file: any, type: "pdf" | "image") => {
+    setIsUploading(true);
+    setUploadProgress(10);
+    setUploadingFileName(file.name || "File");
+
+    try {
+      // Create form data compatible file object
+      const fileToUpload = {
+        uri: file.uri,
+        name: file.name || (type === "pdf" ? "report.pdf" : "image.jpg"),
+        type: file.mimeType || (type === "pdf" ? "application/pdf" : "image/jpeg"),
+      };
+
+      setUploadProgress(40);
+      await api.uploadReport(fileToUpload, type);
+      setUploadProgress(100);
+      
+      Alert.alert("Success", "Report uploaded and being processed by AI.");
+      fetchReports(); // Refresh list
+    } catch (error: any) {
+      Alert.alert("Upload Failed", error.message || "An error occurred during upload.");
+    } finally {
+      setTimeout(() => {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 1000);
+    }
+  };
+
   const displayReports = reports.length > 0 ? reports : null;
 
   return (
@@ -136,7 +215,7 @@ export default function ReportsScreen() {
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <Text style={styles.brand}>CareConnect</Text>
+        <Text style={styles.brand}>Arogya</Text>
         <TouchableOpacity style={styles.bellBtn}>
           <MaterialIcons name="notifications-none" size={26} color="#111" />
         </TouchableOpacity>
@@ -172,9 +251,7 @@ export default function ReportsScreen() {
 
           <TouchableOpacity
             style={styles.browseBtn}
-            onPress={() =>
-              Alert.alert("Upload", "Document picker coming soon.")
-            }
+            onPress={handlePickDocument}
           >
             <MaterialIcons
               name="attach-file"
@@ -187,7 +264,7 @@ export default function ReportsScreen() {
 
           <TouchableOpacity
             style={styles.photoBtn}
-            onPress={() => Alert.alert("Camera", "Camera upload coming soon.")}
+            onPress={handleTakePhoto}
           >
             <MaterialIcons
               name="photo-camera"
@@ -200,64 +277,34 @@ export default function ReportsScreen() {
         </View>
 
         {/* Queue */}
-        <Text style={styles.queueLabel}>QUEUE (2 FILES)</Text>
-        <View style={styles.queueCard}>
-          {/* File 1 */}
-          <View style={styles.queueItem}>
-            <View style={[styles.fileIconBox, { backgroundColor: DARK_TEAL }]}>
-              <MaterialIcons name="description" size={20} color="#fff" />
-            </View>
-            <View style={styles.fileInfo}>
-              <View style={styles.fileRow}>
-                <Text style={styles.fileName} numberOfLines={1}>
-                  Blood_Work_Res...
-                </Text>
-                <Text style={styles.fileSize}>2.4 MB</Text>
-                <TouchableOpacity>
-                  <MaterialIcons name="close" size={18} color={GRAY} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.progressBg}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: "80%", backgroundColor: "#4CAF50" },
-                  ]}
-                />
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.queueDivider} />
-
-          {/* File 2 */}
-          <View style={styles.queueItem}>
-            <View style={[styles.fileIconBox, { backgroundColor: "#9E9E9E" }]}>
-              <MaterialIcons name="image" size={20} color="#fff" />
-            </View>
-            <View style={styles.fileInfo}>
-              <View style={styles.fileRow}>
-                <Text style={styles.fileName} numberOfLines={1}>
-                  X-Ray_Lum...
-                </Text>
-                <Text style={[styles.fileSize, { color: GRAY }]}>
-                  Pending...
-                </Text>
-                <TouchableOpacity>
-                  <MaterialIcons name="close" size={18} color={GRAY} />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.progressBg}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { width: "40%", backgroundColor: "#E0E0E0" },
-                  ]}
-                />
+        {isUploading && (
+          <>
+            <Text style={styles.queueLabel}>UPLOADING (1 FILE)</Text>
+            <View style={styles.queueCard}>
+              <View style={styles.queueItem}>
+                <View style={[styles.fileIconBox, { backgroundColor: DARK_TEAL }]}>
+                  <MaterialIcons name="description" size={20} color="#fff" />
+                </View>
+                <View style={styles.fileInfo}>
+                  <View style={styles.fileRow}>
+                    <Text style={styles.fileName} numberOfLines={1}>
+                      {uploadingFileName}
+                    </Text>
+                    <Text style={styles.fileSize}>{uploadProgress}%</Text>
+                  </View>
+                  <View style={styles.progressBg}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${uploadProgress}%`, backgroundColor: "#4CAF50" },
+                      ]}
+                    />
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
-        </View>
+          </>
+        )}
 
         {/* Did you know card */}
         <View style={styles.infoCard}>

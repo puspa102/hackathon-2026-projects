@@ -383,15 +383,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   checkboxChecked: {
-    backgroundColor: "#16a085",
-    borderColor: "#16a085",
+    backgroundColor: "#2A7B88",
+    borderColor: "#2A7B88",
   },
   checkboxLabel: {
     fontSize: 13,
     color: "#666666",
   },
   loginButton: {
-    backgroundColor: "#16a085",
+    backgroundColor: "#2A7B88",
     borderRadius: 8,
     height: 48,
     alignItems: "center",
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     fontSize: 13,
-    color: "#16a085",
+    color: "#2A7B88",
     fontWeight: "600",
   },
 });

@@ -15,7 +15,7 @@ export default function RiskResultScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <RiskResultHeader brandName="CareLoop" />
+      <RiskResultHeader brandName="Arogya" />
 
       <ScrollView
         style={styles.scrollView}

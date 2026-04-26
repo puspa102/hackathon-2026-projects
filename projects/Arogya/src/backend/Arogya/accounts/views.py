@@ -323,3 +323,28 @@ class DoctorDashboardView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+class DoctorListView(APIView):
+    """
+    Returns a list of all doctors with their profiles.
+    Used by patients to find and message doctors.
+    """
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return Response({"error": "Authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        doctors = User.objects.filter(role="doctor").select_related('doctor_profile')
+        
+        data = []
+        for doc in doctors:
+            profile = getattr(doc, 'doctor_profile', None)
+            data.append({
+                "id": doc.id,
+                "name": f"Dr. {doc.first_name} {doc.last_name}".strip() or doc.username,
+                "specialty": profile.specialization if profile else "General Practitioner",
+                "experience": profile.experience_years if profile else 0,
+                "rating": 4.8, # Mock rating
+                "is_online": True,
+            })
+        return Response(data, status=status.HTTP_200_OK)

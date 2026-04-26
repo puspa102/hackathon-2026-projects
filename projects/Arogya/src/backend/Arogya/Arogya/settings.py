@@ -10,22 +10,26 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-3@1-@%x+zbwl82=0098h_e9p%*%vare2$j)+1n9^8g1xzoer^f"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-3@1-@%x+zbwl82=0098h_e9p%*%vare2$j)+1n9^8g1xzoer^f")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
 
 
 # Application definition
@@ -51,8 +55,8 @@ INSTALLED_APPS = [
     "chat",
     "medicines",
     "reports",
-    "appointments",
     "AI",
+    "appointments",
 ]
 
 MIDDLEWARE = [
@@ -155,3 +159,10 @@ AUTH_USER_MODEL = "accounts.User"
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# AI Integration
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+# Upload limits
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024

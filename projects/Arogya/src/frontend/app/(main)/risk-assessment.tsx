@@ -14,6 +14,8 @@ import { useRouter } from "expo-router";
 import { authStorage } from "@/services/storage";
 import { API_BASE_URL } from "@/services/config";
 import { useAuth } from "@/services/AuthContext";
+import { api } from "@/services/api";
+import { Modal } from "react-native";
 
 const BLUE = "#2A7B88";
 const LIGHT_TEAL = "#E6F2F4";
@@ -129,6 +131,23 @@ export default function RiskAssessmentScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
+
+  const handleAISymptomCheck = async () => {
+    if (!checkin?.symptoms) return;
+    setAiLoading(true);
+    setShowAiModal(true);
+    try {
+      const res = await api.aiSymptomCheck(checkin.symptoms);
+      setAiAnalysis(res.analysis);
+    } catch (err: any) {
+      setAiAnalysis("Error generating analysis. Please try again.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const fetchLatest = useCallback(async () => {
     try {
@@ -170,7 +189,7 @@ export default function RiskAssessmentScreen() {
             ).toUpperCase() || "U"}
           </Text>
         </View>
-        <Text style={styles.headerTitle}>CareConnect</Text>
+        <Text style={styles.headerTitle}>Arogya</Text>
         <MaterialIcons name="notifications-none" size={24} color="#333" />
       </View>
 
@@ -313,6 +332,20 @@ export default function RiskAssessmentScreen() {
                 />
                 <Text style={styles.chatBtnText}>Chat with Doctor</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.chatBtn, { backgroundColor: "#1B5C66", marginTop: -4 }]}
+                onPress={handleAISymptomCheck}
+              >
+                <MaterialIcons
+                  name="auto-awesome"
+                  size={20}
+                  color="#fff"
+                  style={{ marginRight: 8 }}
+                />
+                <Text style={styles.chatBtnText}>AI Symptom Analysis</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity style={styles.emergencyBtn}>
                 <MaterialIcons
                   name="medical-services"
@@ -328,6 +361,44 @@ export default function RiskAssessmentScreen() {
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
+
+      {/* AI Analysis Modal */}
+      <Modal
+        visible={showAiModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAiModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <MaterialIcons name="auto-awesome" size={24} color={BLUE} />
+              <Text style={styles.modalTitle}>AI Symptom Analysis</Text>
+              <TouchableOpacity onPress={() => setShowAiModal(false)}>
+                <MaterialIcons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.modalScroll}>
+              {aiLoading ? (
+                <View style={styles.modalLoading}>
+                  <ActivityIndicator size="large" color={BLUE} />
+                  <Text style={styles.modalLoadingText}>Generating your personalized analysis...</Text>
+                </View>
+              ) : (
+                <Text style={styles.analysisText}>{aiAnalysis}</Text>
+              )}
+            </ScrollView>
+            {!aiLoading && (
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setShowAiModal(false)}
+              >
+                <Text style={styles.modalCloseBtnText}>Close Analysis</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -456,4 +527,58 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   emergencyBtnText: { color: BLUE, fontSize: 14, fontWeight: "bold" },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+    gap: 12,
+  },
+  modalTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#111",
+  },
+  modalScroll: {
+    marginBottom: 20,
+  },
+  modalLoading: {
+    padding: 40,
+    alignItems: "center",
+    gap: 16,
+  },
+  modalLoadingText: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+  },
+  analysisText: {
+    fontSize: 15,
+    color: "#333",
+    lineHeight: 24,
+  },
+  modalCloseBtn: {
+    backgroundColor: BLUE,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  modalCloseBtnText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "bold",
+  },
 });

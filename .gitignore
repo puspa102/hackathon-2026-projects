@@ -50,3 +50,8 @@ __pycache__/
 # Database
 *.sqlite3
 db.sqlite3
+
+# Environment variables
+.env
+.env.local
+projects/Arogya/src/backend/Arogya/.env

@@ -173,7 +173,7 @@ export default function SignupScreen() {
         <View style={styles.welcomeSection}>
           <Text style={styles.heading}>Create an account</Text>
           <Text style={styles.subheading}>
-            Join CareLoop to manage your health{"\n"}journey.
+            Join Arogya to manage your health{"\n"}journey.
           </Text>
         </View>
 

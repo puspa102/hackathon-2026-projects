@@ -60,8 +60,8 @@ interface EditableFields {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const BRAND = "#16a085";
-const BRAND_LIGHT = "#e8f8f5";
+const BRAND = "#2A7B88";
+const BRAND_LIGHT = "#EAF3FA";
 const DANGER = "#e74c3c";
 const GREY = "#7f8c8d";
 const CARD_BG = "#ffffff";

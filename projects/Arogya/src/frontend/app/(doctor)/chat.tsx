@@ -193,7 +193,7 @@ export default function ChatScreen() {
                 >
                   <View style={isMine ? styles.bubbleRight : styles.bubbleLeft}>
                     <Text style={isMine ? styles.textRight : styles.textLeft}>
-                      {msg.message}
+                      {String(msg.message)}
                     </Text>
                   </View>
                   <Text style={isMine ? styles.timeRight : styles.timeLeft}>

@@ -151,7 +151,7 @@ export default function MedicalHistoryScreen() {
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
-        <Text style={styles.brand}>CareConnect</Text>
+        <Text style={styles.brand}>Arogya</Text>
         <TouchableOpacity>
           <MaterialIcons name="notifications-none" size={26} color="#111" />
         </TouchableOpacity>
