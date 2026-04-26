@@ -2,16 +2,17 @@ import streamlit as st
 import json
 import pandas as pd
 from datetime import datetime
-from db.db import save_diagnostic_report, get_recent_sessions
+from db.db import save_diagnostic_report, get_recent_sessions, get_patient_full_context, save_appointment
 
-# --- NEW INTEGRATION IMPORTS ---
+# --- INTEGRATION IMPORTS ---
 from integrations.notifications import send_summary
-from integrations.calendar_api import book_appointment
+from integrations.calendar_api import get_doctor_availability, book_appointment
 
 def show():
     patient_id = st.session_state.get('patient_id')
+    scroll_to = st.session_state.pop("scroll_to", None) 
 
-    # --- FIX: AUTO-LOAD PREVIOUS RECORD IF STATE IS EMPTY ---
+    # 1. AUTO-LOAD PREVIOUS RECORD IF STATE IS EMPTY
     if not st.session_state.get('diagnosis'):
         if patient_id:
             recent = get_recent_sessions(patient_id, limit=1)
@@ -36,100 +37,108 @@ def show():
     session_id = st.session_state.get('session_id')
     user_profile = st.session_state.get('user_profile', {})
 
-    # 1. Display Risk Banners
+    # --- 2. RISK BANNERS (Her Styled Version) ---
     if risk == "HIGH":
-        st.error("🚨 **EMERGENCY: Please seek immediate medical attention.**")
+        st.markdown("""
+            <div style="background:#ff000020; border:2px solid #ff0000;
+                 border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                <h2 style="color:#cc0000; margin:0;">🚨 EMERGENCY</h2>
+                <p style="color:#cc0000; font-size:18px; margin:8px 0;">
+                    Your symptoms require <strong>immediate medical attention.</strong>
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            st.link_button("📞 Call 911 Now", "tel:911", use_container_width=True, type="primary")
+        with col2:
+            st.link_button("🗺️ Find Nearest ER", "https://www.google.com/maps/search/emergency+room+near+me", use_container_width=True)
+
     elif risk == "MEDIUM":
-        st.warning("⚠️ **MEDIUM RISK: Professional follow-up is recommended.**")
+        st.markdown("""
+            <div style="background:#fff3cd; border:2px solid #ffc107;
+                 border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                <h2 style="color:#856404; margin:0;">⚠️ MEDICAL ATTENTION NEEDED</h2>
+                <p style="color:#856404; font-size:16px; margin:8px 0;">
+                    You should see a doctor within <strong>24 hours.</strong>
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
     else:
-        st.success("✅ **LOW RISK: Manage symptoms at home and monitor.**")
+        st.markdown("""
+            <div style="background:#d4edda; border:2px solid #28a745;
+                 border-radius:12px; padding:24px; text-align:center; margin:16px 0;">
+                <h2 style="color:#155724; margin:0;">✅ LOW RISK</h2>
+                <p style="color:#155724; font-size:16px; margin:8px 0;">
+                    Your symptoms can be managed at home.
+                </p>
+            </div>
+        """, unsafe_allow_html=True)
 
     st.title("📋 Diagnostic Report")
 
-    # --- UPDATED: TRIGGER AUTOMATION INTEGRATIONS ---
-    
-    # A. Send Email Notification
+    # --- 3. NOTIFICATIONS ---
     if not st.session_state.get('email_sent'):
-        with st.spinner("📧 Sending clinical summary to your provider..."):
+        with st.spinner("📧 Notifying your doctor via email..."):
             email_success = send_summary(user_profile, diag, risk)
             if email_success:
                 st.session_state['email_sent'] = True
-                st.toast("Summary sent to your doctor.")
+                st.toast("Doctor has been notified.")
 
-    # B. Interactive Appointment Booking (Only for MEDIUM risk)
+    # --- 4. APPOINTMENT BOOKING (Manual Selection - Your Logic) ---
+    st.markdown('<div id="appointment"></div>', unsafe_allow_html=True) 
+
     if risk == "MEDIUM":
         st.divider()
         st.subheader("📅 Schedule Follow-up Appointment")
         
         if not st.session_state.get('appointment_booked'):
-            from db.db import get_patient_full_context, save_appointment
-            from integrations.calendar_api import get_doctor_availability, book_appointment
-            
-            # --- DEFINE ALL VARIABLES FIRST ---
             ctx = get_patient_full_context(patient_id)
             physician_data = ctx.get("physician", {})
-            
             doctor_email = physician_data.get("email")
-            patient_email = user_profile.get("email")
-            patient_name = user_profile.get("name", "Patient")
 
             if doctor_email:
-                # 1. Fetch available slots
                 if 'available_slots' not in st.session_state:
                     with st.spinner("Checking doctor availability..."):
+                        from integrations.calendar_api import get_doctor_availability
                         st.session_state.available_slots = get_doctor_availability(doctor_email)
 
                 if st.session_state.available_slots:
-                    st.write(f"Dr. {physician_data.get('doctor_name')} is free at the following times:")
-                    
-                    # 2. Patient selects a slot
                     selected_slot = st.selectbox(
-                        "Pick a time that works for you:",
+                        f"Pick a time with Dr. {physician_data.get('doctor_name', 'Provider')}:",
                         options=st.session_state.available_slots,
                         format_func=lambda x: datetime.fromisoformat(x).strftime("%A, %b %d at %I:%M %p")
                     )
                     
-                    if st.button("Confirm Appointment", type="primary"):
-                        # Double check we have the patient email before calling the API
-                        if not patient_email:
-                            st.error("Your email is missing from your profile. Please re-login.")
-                        else:
-                            with st.spinner("Booking..."):
-                                result = book_appointment(
-                                    doctor_email=doctor_email,
-                                    patient_email=patient_email,
-                                    patient_name=patient_name,
-                                    start_time_iso=selected_slot,
-                                    risk_summary=f"MEDIUM Risk - {diag.get('summary', '')[:30]}"
-                                )
-                                if result:
-                                    # Save to local DB so doctor can see it in their dashboard
-                                    save_appointment(
-                                        patient_id=patient_id,
-                                        doctor_email=doctor_email,
-                                        appointment_time=selected_slot,
-                                        summary=diag.get('summary', '')
-                                    )
-                                    st.session_state.appointment_booked = True
-                                    st.success("Appointment Confirmed!")
-                                    st.rerun()
+                    if st.button("Confirm Appointment", type="primary", use_container_width=True):
+                        with st.spinner("Booking..."):
+                            result = book_appointment(
+                                doctor_email=doctor_email,
+                                patient_email=user_profile.get("email"),
+                                patient_name=user_profile.get("name", "Patient"),
+                                start_time_iso=selected_slot,
+                                risk_summary=f"MEDIUM Risk - {diag.get('summary', '')[:30]}"
+                            )
+                            if result:
+                                save_appointment(patient_id, doctor_email, selected_slot, diag.get('summary', ''))
+                                st.session_state.appointment_booked = True
+                                st.success("Appointment Confirmed!")
+                                st.rerun()
                 else:
                     st.warning("No open slots found for the next 3 days.")
             else:
-                st.error("No doctor email found in profile.")
+                st.error("No doctor assigned to your profile.")
         else:
-            st.success("✅ Your appointment is scheduled and reflected on both calendars.")
+            st.success("✅ Appointment scheduled and synced.")
         st.divider()
 
-    # --- STEP 4: FHIR HANDSHAKE ---
+    # --- 5. FHIR & ANALYSIS ---
     if patient_id and session_id:
         with st.spinner("Generating FHIR R4 Record..."):
             fhir_data = save_diagnostic_report(patient_id, session_id, diag)
-            
-        with st.expander("📂 View FHIR R4 JSON (Interoperability)", expanded=False):
+        with st.expander("📂 View FHIR R4 JSON (Interoperability)"):
             st.json(fhir_data)
 
-    # 3. Display AI Analysis
     st.subheader("Summary")
     st.write(diag.get('summary', 'Analysis provided by MedGemma.'))
 
@@ -138,43 +147,39 @@ def show():
         st.markdown("### 🧬 Potential Conditions")
         for cond in diag.get('top_conditions', []):
             st.markdown(f"- **{cond['name']}** ({int(cond['probability']*100)}%)")
-            
     with col2:
+        st.markdown('<div id="remedies"></div>', unsafe_allow_html=True)
         st.markdown("### 💊 Recommended Remedies")
         for rem in diag.get('remedies', []):
             st.markdown(f"- {rem}")
 
-    # --- RECENT MEDICAL HISTORY SECTION ---
+    # --- 6. AUTO SCROLL (Her Logic) ---
+    if scroll_to:
+        st.markdown(f"""
+            <script>
+                window.addEventListener('load', function() {{
+                    const el = document.getElementById('{scroll_to}');
+                    if (el) el.scrollIntoView({{behavior: 'smooth'}});
+                }});
+            </script>
+        """, unsafe_allow_html=True)
+
+    # --- 7. HISTORY & FOOTER ---
     st.divider()
-    st.subheader("📜 Your Recent Medical History")
-    
+    st.subheader("📜 Recent Medical History")
     if patient_id:
-        recent_data = get_recent_sessions(patient_id, limit=3) 
-        if recent_data:
-            for i, entry in enumerate(recent_data):
-                try:
-                    past_diag = json.loads(entry['diagnosis'])
-                    date_val = entry['created_at'][:10]
-                    
-                    with st.expander(f"Visit Date: {date_val} | Risk: {entry['risk_tier']}"):
-                        st.write(f"**Symptoms:** {entry['symptoms']}")
-                        st.info(f"**Main Condition:** {past_diag.get('top_conditions', [{}])[0].get('name', 'N/A')}")
-                        
-                        if st.button(f"Reload This Report", key=f"reload_res_{i}"):
-                            st.session_state.email_sent = False
-                            st.session_state.appointment_booked = False
-                            st.session_state.diagnosis = past_diag
-                            st.session_state.session_id = entry['id']
-                            st.rerun()
-                except Exception: 
-                    continue
-        else:
-            st.info("No previous reports found.")
+        recent_data = get_recent_sessions(patient_id, limit=3)
+        for i, entry in enumerate(recent_data or []):
+            try:
+                past_diag = json.loads(entry['diagnosis'])
+                with st.expander(f"Visit: {entry['created_at'][:10]} | Risk: {entry['risk_tier']}"):
+                    st.write(f"**Symptoms:** {entry['symptoms']}")
+                    if st.button("Reload This Report", key=f"rel_{i}"):
+                        st.session_state.update({"diagnosis": past_diag, "session_id": entry['id'], "email_sent": False, "appointment_booked": False})
+                        st.rerun()
+            except: continue
 
     st.divider()
-    if st.button("🏠 Return to Dashboard"):
-        st.session_state.diagnosis = None 
-        st.session_state.email_sent = False
-        st.session_state.appointment_booked = False
-        st.session_state.current_page = "Symptoms"
+    if st.button("🏠 Return to Dashboard", use_container_width=True):
+        st.session_state.update({"diagnosis": None, "email_sent": False, "appointment_booked": False, "current_page": "Symptoms"})
         st.rerun()
