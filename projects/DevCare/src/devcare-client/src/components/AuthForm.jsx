@@ -52,8 +52,18 @@ function AuthForm({ mode }) {
           registerData.refresh,
           registerData.user.username
         )
-        setSuccess('Registration successful. Redirecting to dashboard...')
-        setTimeout(() => navigate('/dashboard'), 600)
+        setSuccess('Registration successful. Redirecting...')
+
+        const searchParams = new URLSearchParams(window.location.search)
+        const nextPath = searchParams.get('next')
+
+        setTimeout(() => {
+          if (nextPath) {
+            navigate(nextPath, { replace: true })
+          } else {
+            navigate('/dashboard')
+          }
+        }, 600)
       } else {
         const loginData = await loginUser({
           email: form.email,
@@ -61,8 +71,19 @@ function AuthForm({ mode }) {
         })
 
         saveAuth(loginData.access, loginData.refresh, loginData.user.username)
-        setSuccess('Login successful. Redirecting to dashboard...')
-        setTimeout(() => navigate('/dashboard'), 600)
+        setSuccess('Login successful. Redirecting...')
+        
+        // Handle 'next' redirect if present
+        const searchParams = new URLSearchParams(window.location.search)
+        const nextPath = searchParams.get('next')
+        
+        setTimeout(() => {
+          if (nextPath) {
+            navigate(nextPath, { replace: true })
+          } else {
+            navigate('/dashboard')
+          }
+        }, 600)
       }
 
 

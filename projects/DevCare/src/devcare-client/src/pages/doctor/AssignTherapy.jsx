@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   ClipboardList, 
   Search, 
@@ -8,35 +8,52 @@ import {
   Info, 
   ArrowRight,
   SendHorizontal,
-  UserCheck
+  Loader2
 } from 'lucide-react'
+import { getMyPatients } from '../../api/connectionsApi'
+import { getExercises, createRehabPlan } from '../../api/rehabApi'
 
 function AssignTherapy() {
   const [selectedPatient, setSelectedPatient] = useState('')
-  const [exercises, setExercises] = useState([]) // Array of { id, reps, sets }
+  const [patients, setPatients] = useState([])
+  const [availableExercises, setAvailableExercises] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  
+  const [exercises, setExercises] = useState([]) // Array of { id, target_reps, order }
   const [tasks, setTasks] = useState([])
   const [newTask, setNewTask] = useState('')
 
-  const availableExercises = [
-    { id: 'ex1', name: 'Bicep Curl', description: 'Elbow flexion with resistance', icon: '💪' },
-    { id: 'ex2', name: 'Squat', description: 'Functional lower body movement', icon: '🦵' },
-    { id: 'ex3', name: 'Shoulder Raise', description: 'Lateral arm elevation', icon: '🏋️' },
-    { id: 'ex4', name: 'Knee Extension', description: 'Terminal knee straightening', icon: '🦵' },
-    { id: 'ex5', name: 'Hip Abduction', description: 'Lateral leg movement', icon: '🦿' },
-  ]
+  useEffect(() => {
+    Promise.all([getMyPatients(), getExercises()])
+      .then(([pData, exData]) => {
+        setPatients(pData)
+        setAvailableExercises(exData)
+      })
+      .catch(err => console.error('Error fetching data:', err))
+      .finally(() => setLoading(false))
+  }, [])
 
   const toggleExercise = (id) => {
-    const exists = exercises.find(e => e.id === id)
+    const exists = exercises.find(e => e.exercise_id === id)
     if (exists) {
-      setExercises(exercises.filter(e => e.id !== id))
+      // Remove it and re-calculate the order of the remaining exercises
+      const updatedExercises = exercises
+        .filter(e => e.exercise_id !== id)
+        .sort((a, b) => a.order - b.order)
+        .map((ex, index) => ({
+          ...ex,
+          order: index + 1
+        }))
+      setExercises(updatedExercises)
     } else {
-      setExercises([...exercises, { id, reps: 10, sets: 3 }])
+      setExercises([...exercises, { exercise_id: id, target_reps: 10, order: exercises.length + 1 }])
     }
   }
 
   const updateExerciseParams = (id, field, value) => {
     setExercises(exercises.map(ex => 
-      ex.id === id ? { ...ex, [field]: parseInt(value) || 0 } : ex
+      ex.exercise_id === id ? { ...ex, [field]: parseInt(value) || 0 } : ex
     ))
   }
 
@@ -51,11 +68,40 @@ function AssignTherapy() {
     setTasks(tasks.filter((_, i) => i !== index))
   }
 
+  const handleDeployPlan = async () => {
+    if (!selectedPatient) return
+    
+    // Sort exercises to ensure order is sequential before sending
+    const sortedExercises = [...exercises].sort((a, b) => a.order - b.order)
+
+    setSubmitting(true)
+    try {
+      const planData = {
+        patient_id: parseInt(selectedPatient),
+        name: `Recovery Plan - ${new Date().toLocaleDateString()}`,
+        tasks: tasks,
+        exercises: sortedExercises
+      }
+      
+      const response = await createRehabPlan(planData)
+      alert(`Plan successfully deployed for ${patients.find(p => String(p.id) === selectedPatient)?.name}!\n\nExercises assigned: ${response.exercises?.length || 0}\nTasks added: ${response.tasks?.length || 0}`)
+      
+      // Reset form
+      setExercises([])
+      setTasks([])
+      setSelectedPatient('')
+    } catch (err) {
+      alert(`Failed to deploy plan: ${err.message}`)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="animate-fade-in pb-12">
       <header className="mb-12">
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] mb-2">
-           <ClipboardList size={12} />
+           <div className="h-1 w-4 bg-[var(--color-primary)] rounded-full"></div>
            Plan Configuration
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight">Assign Recovery Plan</h1>
@@ -66,21 +112,31 @@ function AssignTherapy() {
         <div className="lg:col-span-8 space-y-8">
           
           {/* Step 1: Select Patient */}
-          <section className="elevated-card p-8 border-none shadow-lg">
+          <section className="elevated-card p-8 border-none shadow-lg relative overflow-hidden">
+            {loading && (
+              <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center gap-3">
+                <Loader2 className="animate-spin text-[var(--color-primary)]" size={20} />
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Loading Clinical Directory...</span>
+              </div>
+            )}
             <div className="flex items-center gap-3 mb-8">
               <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">01</div>
               <h2 className="text-xl font-bold">Select Target Patient</h2>
             </div>
             <div className="relative">
                <select 
-                className="auth-input h-[56px] appearance-none font-semibold text-slate-700"
+                className="auth-input h-[56px] appearance-none font-semibold text-slate-700 disabled:opacity-50"
                 value={selectedPatient}
                 onChange={(e) => setSelectedPatient(e.target.value)}
+                disabled={loading}
                >
                 <option value="">Choose a patient from your directory...</option>
-                <option value="1">Sarah Chen (ACL Reconstruction)</option>
-                <option value="2">Bob Johnson (Shoulder Impingement)</option>
-                <option value="3">Charlie Davis (Ankle Sprain)</option>
+                {patients.map(p => (
+                  <option key={p.id} value={p.id}>{p.name} (@{p.username})</option>
+                ))}
+                {!loading && patients.length === 0 && (
+                  <option disabled>No connected patients found. Use 'New Connection' first.</option>
+                )}
                </select>
                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                   <ArrowRight size={18} className="rotate-90" />
@@ -103,7 +159,15 @@ function AssignTherapy() {
             
             <div className="grid gap-4 sm:grid-cols-2">
               {availableExercises.map(ex => {
-                const selected = exercises.find(e => e.id === ex.id)
+                const selected = exercises.find(e => e.exercise_id === ex.id)
+                const getIcon = (name) => {
+                  if (name.includes('Bicep')) return '💪'
+                  if (name.includes('Squat')) return '🦵'
+                  if (name.includes('Shoulder')) return '🏋️'
+                  if (name.includes('Knee')) return '🦵'
+                  return '🦿'
+                }
+
                 return (
                   <div 
                     key={ex.id}
@@ -116,7 +180,7 @@ function AssignTherapy() {
                   >
                     <div className="flex items-start gap-4">
                       <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-xl transition-all shadow-sm ${selected ? 'bg-white' : 'bg-slate-50'}`}>
-                        {ex.icon}
+                        {getIcon(ex.name)}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
@@ -133,8 +197,8 @@ function AssignTherapy() {
                           <label className="text-[9px] font-black uppercase tracking-widest text-blue-400 block mb-1.5">No. of Reps</label>
                           <input 
                             type="number" 
-                            value={selected.reps}
-                            onChange={(e) => updateExerciseParams(ex.id, 'reps', e.target.value)}
+                            value={selected.target_reps}
+                            onChange={(e) => updateExerciseParams(ex.id, 'target_reps', e.target.value)}
                             className="w-full bg-white border border-blue-100 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 focus:border-blue-300 outline-none"
                           />
                         </div>
@@ -213,7 +277,7 @@ function AssignTherapy() {
                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Recipient</p>
                    <p className="text-sm font-bold text-slate-900">
-                     {selectedPatient ? (selectedPatient === '1' ? 'Sarah Chen' : selectedPatient === '2' ? 'Bob Johnson' : 'Charlie Davis') : '---'}
+                     {selectedPatient ? (patients.find(p => String(p.id) === selectedPatient)?.name || '---') : '---'}
                    </p>
                  </div>
 
@@ -230,12 +294,12 @@ function AssignTherapy() {
                </div>
 
                <button 
-                 disabled={!selectedPatient || (exercises.length === 0 && tasks.length === 0)}
-                 className="btn-primary w-full mt-10 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-blue-200"
-                 onClick={() => alert('Plan has been securely transmitted to patient dashboard.')}
+                 disabled={!selectedPatient || (exercises.length === 0 && tasks.length === 0) || submitting}
+                 className="btn-primary w-full mt-10 py-4 rounded-2xl flex items-center justify-center gap-3 shadow-blue-200 disabled:opacity-50"
+                 onClick={handleDeployPlan}
                >
-                 <SendHorizontal size={20} />
-                 <span>Deploy Plan</span>
+                 {submitting ? <Loader2 size={20} className="animate-spin" /> : <SendHorizontal size={20} />}
+                 <span>{submitting ? 'Deploying...' : 'Deploy Plan'}</span>
                </button>
                
             </div>

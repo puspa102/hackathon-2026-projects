@@ -16,9 +16,10 @@ function PatientDashboard() {
       {/* Welcome Section */}
       <div className="mb-12 rounded-[2rem] border border-[var(--color-border)] bg-[var(--color-surface)] p-10 shadow-sm relative overflow-hidden">
         <div className="absolute top-0 right-0 h-full w-1/3 bg-gradient-to-l from-[var(--color-primary-soft)] to-transparent opacity-50"></div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
-          Welcome Back
-        </p>
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-primary)]">
+           <div className="h-1 w-4 bg-[var(--color-primary)] rounded-full"></div>
+           Welcome Back
+        </div>
         <h1 className="mt-4 text-5xl font-black tracking-tight text-slate-900">
           Good morning, {username || 'Patient'}
         </h1>
@@ -105,7 +106,7 @@ function PatientDashboard() {
                     <Clock size={14} />
                     <span>Today at 2:30 PM</span>
                   </div>
-                  <button onClick={() => navigate('/therapy-session')} className="w-full py-4 rounded-2xl bg-white text-slate-900 font-black text-sm hover:bg-slate-50 transition-all transform active:scale-95 shadow-lg">
+                  <button onClick={() => navigate('/my-sessions')} className="w-full py-4 rounded-2xl bg-white text-slate-900 font-black text-sm hover:bg-slate-50 transition-all transform active:scale-95 shadow-lg">
                     Start Session
                   </button>
                 </div>
@@ -156,7 +157,7 @@ function PatientDashboard() {
             <section className="rounded-[2.5rem] bg-slate-50 p-10 border border-slate-100">
               <h3 className="mb-8 text-lg font-black text-slate-900 uppercase tracking-widest">Quick Actions</h3>
               <div className="flex flex-wrap gap-4">
-                <button onClick={() => navigate('/therapy-session')} className="btn-dark px-8 py-4 rounded-2xl flex items-center gap-3">
+                <button onClick={() => navigate('/my-sessions')} className="btn-dark px-8 py-4 rounded-2xl flex items-center gap-3">
                   <Activity size={18} />
                   Start Therapy
                 </button>

@@ -15,12 +15,15 @@ import FeedbackReview from './pages/doctor/FeedbackReview'
 import ShareConnection from './pages/doctor/ShareConnection'
 
 // Patient Pages
-import PatientDashboard from './pages/patient/Dashboard'
-import TherapySession from './pages/patient/TherapySession'
-import TherapyLibrary from './pages/patient/TherapyLibrary'
-import MySessions from './pages/patient/MySessions'
-import Progress from './pages/patient/Progress'
-import Feedback from './pages/patient/Feedback'
+import PatientDashboard from './pages/Patient/Dashboard'
+import TherapySession from './pages/Patient/TherapySession'
+import SessionResult from './pages/Patient/SessionResult'
+import SessionDetail from './pages/Patient/SessionDetail'
+import TherapyRoadmap from './pages/Patient/TherapyRoadmap'
+import Progress from './pages/Patient/Progress'
+import Feedback from './pages/Patient/Feedback'
+import JoinDoctor from './pages/Patient/JoinDoctor'
+import StartSession from './pages/Patient/StartSession'
 
 function App() {
   return (
@@ -28,6 +31,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<AuthPage initialMode="login" />} />
       <Route path="/register" element={<AuthPage initialMode="register" />} />
+      <Route path="/join/:token" element={<JoinDoctor />} />
       
       {/* Internal Dashboard Routes */}
       <Route element={<DashboardLayout />}>
@@ -82,7 +86,7 @@ function App() {
           }
         />
         <Route
-          path="/doctor/feedback"
+          path="/doctor/feedback/:patientId"
           element={
             <ProtectedRoute allowedRoles={['doctor']}>
               <FeedbackReview />
@@ -116,10 +120,26 @@ function App() {
           }
         />
         <Route
-          path="/therapy-library"
+          path="/start-session/:sessionId"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
-              <TherapyLibrary />
+              <StartSession />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/session-result"
+          element={
+            <ProtectedRoute allowedRoles={['patient']}>
+              <SessionResult />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/session-result/:sessionId"
+          element={
+            <ProtectedRoute allowedRoles={['patient']}>
+              <SessionDetail />
             </ProtectedRoute>
           }
         />
@@ -127,7 +147,7 @@ function App() {
           path="/my-sessions"
           element={
             <ProtectedRoute allowedRoles={['patient']}>
-              <MySessions />
+              <TherapyRoadmap />
             </ProtectedRoute>
           }
         />
@@ -136,14 +156,6 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['patient']}>
               <Progress />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/feedback"
-          element={
-            <ProtectedRoute allowedRoles={['patient']}>
-              <Feedback />
             </ProtectedRoute>
           }
         />

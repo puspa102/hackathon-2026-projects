@@ -11,7 +11,7 @@ function DashboardLayout() {
     <div className="flex h-screen bg-[var(--color-bg)] overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
-      <main className="flex-1 overflow-y-auto pl-64 transition-all duration-300">
+      <main className="flex-1 overflow-y-auto pl-72 transition-all duration-300">
         <div className="animate-fade-in p-8">
           <Outlet />
         </div>

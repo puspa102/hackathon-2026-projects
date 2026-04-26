@@ -29,6 +29,7 @@ class RehabPlan(models.Model):
 		related_name="rehab_plans_assigned",
 	)
 	name = models.CharField(max_length=120)
+	tasks = models.JSONField(default=list, blank=True) # Added for Daily Recovery Roadmap
 	created_at = models.DateTimeField(auto_now_add=True)
 
 	class Meta:
@@ -71,6 +72,7 @@ class ExerciseSession(models.Model):
 		on_delete=models.CASCADE,
 		related_name="sessions",
 	)
+	body_part_scores = models.JSONField(default=list, blank=True) # From AI module
 	started_at = models.DateTimeField(auto_now_add=True)
 	completed_at = models.DateTimeField(null=True, blank=True)
 
@@ -102,3 +104,14 @@ class ExerciseResult(models.Model):
 
 	def __str__(self):
 		return f"Session #{self.session_id} - {self.exercise.name}"
+
+class DoctorFeedback(models.Model):
+	doctor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="given_feedback")
+	patient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="received_feedback")
+	session = models.ForeignKey(ExerciseSession, on_delete=models.CASCADE, related_name="feedback")
+	rating = models.IntegerField()
+	guidance = models.TextField()
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return f"Feedback by {self.doctor.username} for {self.patient.username}"

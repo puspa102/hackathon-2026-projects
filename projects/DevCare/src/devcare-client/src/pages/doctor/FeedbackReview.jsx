@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { submitFeedback, getPatientSessions } from '../../api/rehabApi'
 import { 
   MessageSquareMore, 
   Star, 
@@ -7,19 +8,55 @@ import {
   AlertCircle, 
   UserCircle,
   FileText,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react'
 
 function FeedbackReview() {
   const navigate = useNavigate()
+  const { patientId } = useParams()
   const [rating, setRating] = useState(0)
   const [message, setMessage] = useState('')
-  const [selectedPatient, setSelectedPatient] = useState('1')
+  const selectedPatient = patientId || '1'
 
-  const handleSubmit = (e) => {
+  const [latestSessionId, setLatestSessionId] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    getPatientSessions(selectedPatient)
+      .then(sessions => {
+        if (sessions && sessions.length > 0) {
+          setLatestSessionId(sessions[0].id)
+        }
+      })
+      .catch(err => console.error("Could not fetch sessions", err))
+  }, [selectedPatient])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    alert('Clinical feedback has been recorded and transmitted.')
-    navigate('/doctor/dashboard')
+    if (!latestSessionId) {
+      setError("No completed session found for this patient.")
+      return
+    }
+
+    setSubmitting(true)
+    setError('')
+
+    try {
+      await submitFeedback({
+        patient_id: parseInt(selectedPatient),
+        session_id: latestSessionId,
+        rating: rating,
+        guidance: message
+      })
+      alert('Clinical feedback has been recorded and transmitted.')
+      navigate('/doctor/dashboard')
+    } catch (err) {
+      setError(err.message || 'Failed to submit feedback')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const patientInfo = {
@@ -31,8 +68,8 @@ function FeedbackReview() {
     <div className="animate-fade-in pb-12">
       <header className="mb-12">
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] mb-2">
-           <MessageSquareMore size={12} />
-           Performance Review
+           <div className="h-1 w-4 bg-[var(--color-primary)] rounded-full"></div>
+           Review & Insights
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight">Feedback</h1>
         <p className="text-lg text-[var(--color-text-muted)] mt-2 font-medium">Evaluate patient performance and provide professional guidance.</p>
@@ -131,12 +168,19 @@ function FeedbackReview() {
 
             <button
               type="submit"
-              className="btn-primary w-full py-5 rounded-[1.5rem] text-lg shadow-blue-100 flex items-center justify-center gap-3"
-              disabled={!rating || !message}
+              className="btn-primary w-full py-5 rounded-[1.5rem] text-lg shadow-blue-100 flex items-center justify-center gap-3 disabled:opacity-50"
+              disabled={!rating || !message || submitting || !latestSessionId}
             >
-              <SendHorizontal size={22} />
-              <span>Broadcast Feedback</span>
+              {submitting ? <Loader2 size={22} className="animate-spin" /> : <SendHorizontal size={22} />}
+              <span>{submitting ? 'Transmitting...' : 'Broadcast Feedback'}</span>
             </button>
+            
+            {error && (
+              <div className="mt-4 p-4 rounded-xl bg-red-50 text-red-600 text-sm font-bold flex items-center justify-center gap-2">
+                 <AlertCircle size={16} />
+                 {error}
+              </div>
+            )}
             
           </form>
         </div>

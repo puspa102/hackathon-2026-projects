@@ -1,13 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { ArrowLeft, Play, Square, Volume2, Settings } from 'lucide-react'
 import Webcam from 'react-webcam';
-import '@mediapipe/pose';
-import '@mediapipe/drawing_utils';
+// MediaPipe globals from index.html
 
-const Pose = window.Pose;
-const POSE_CONNECTIONS = window.POSE_CONNECTIONS;
-const drawConnectors = window.drawConnectors;
-const drawLandmarks = window.drawLandmarks;
 import { usePose } from '../../hooks/usePose';
 import {
   evaluateBicepCurl,
@@ -18,7 +14,11 @@ import {
 } from '../../utils/exerciseEvaluators';
 import { generateBodyEvaluation } from '../../utils/bodyEvaluation';
 import SessionReport from '../../components/SessionReport';
-import { CheckCircle, Play, Video, ArrowRight } from 'lucide-react';
+
+const USERNAME_KEY = 'devcare_username'
+const ACCESS_TOKEN_KEY = 'devcare_access_token'
+const REFRESH_TOKEN_KEY = 'devcare_refresh_token'
+const ROLE_KEY = 'devcare_role'
 
 const EVALUATOR_MAP = {
   'Bicep Curl': evaluateBicepCurl,
@@ -30,10 +30,12 @@ const EVALUATOR_MAP = {
 
 export default function StartSession() {
   const { sessionId } = useParams();
-  const navigate = useNavigate();
-
+  const navigate = useNavigate()
+  const location = useLocation()
+  const assignedPlan = location.state?.plan;
+  
   // State
-  const [plan, setPlan] = useState(null);
+  const [plan, setPlan] = useState(assignedPlan || null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
@@ -45,6 +47,7 @@ export default function StartSession() {
     currentAngle: 0
   });
   const [results, setResults] = useState([]); // Array to store final results
+  const [timeElapsed, setTimeElapsed] = useState(0);
 
   const [angleHistory, setAngleHistory] = useState({
     arms: [], shoulders: [], hips: [], knees: [], ankles: []
@@ -56,8 +59,10 @@ export default function StartSession() {
   const requestRef = useRef(null);
   const exerciseStateRef = useRef(exerciseState);
   const angleHistoryRef = useRef(angleHistory);
+  const sessionActiveRef = useRef(sessionActive);
+  const currentExerciseRef = useRef(null);
+  const handleExerciseCompleteRef = useRef();
 
-  // Sync state to ref for access in onResults callback without re-binding
   useEffect(() => {
     exerciseStateRef.current = exerciseState;
   }, [exerciseState]);
@@ -66,26 +71,78 @@ export default function StartSession() {
     angleHistoryRef.current = angleHistory;
   }, [angleHistory]);
 
-
-  // Mock Fetch Plan
   useEffect(() => {
-    // In a real app: axios.get(`/api/rehab/sessions/${sessionId}/plan`)
-    const fetchPlan = async () => {
-      // Mock data
+    sessionActiveRef.current = sessionActive;
+  }, [sessionActive]);
+
+  // Mock Fetch Plan if not assigned via location state
+  useEffect(() => {
+    if (!plan) {
       setPlan({
         id: sessionId || '123',
-        title: "Daily Shoulder & Leg Routine",
+        name: "Daily Shoulder & Leg Routine",
         exercises: [
-          { name: 'Bicep Curl', targetReps: 5, instructions: 'Keep your elbows close to your torso.' },
-          { name: 'Squat', targetReps: 5, instructions: 'Keep your back straight and go low.' },
-          { name: 'Shoulder Raise', targetReps: 5, instructions: 'Raise arms parallel to floor.' }
+          { exercise: { name: 'Bicep Curl', description: 'Keep your elbows close to your torso.' }, target_reps: 5 },
+          { exercise: { name: 'Squat', description: 'Keep your back straight and go low.' }, target_reps: 5 },
+          { exercise: { name: 'Shoulder Raise', description: 'Raise arms parallel to floor.' }, target_reps: 5 }
         ]
       });
-    };
-    fetchPlan();
-  }, [sessionId]);
+    }
+  }, [plan, sessionId]);
 
-  const currentExercise = plan?.exercises[currentExerciseIndex];
+  const currentExerciseData = plan?.exercises?.[currentExerciseIndex];
+  const currentExercise = currentExerciseData ? {
+    name: currentExerciseData.exercise?.name || currentExerciseData.name,
+    targetReps: currentExerciseData.target_reps || currentExerciseData.targetReps,
+    instructions: currentExerciseData.exercise?.description || currentExerciseData.instructions || 'Follow the correct form.'
+  } : null;
+
+  useEffect(() => {
+    currentExerciseRef.current = currentExercise;
+  }, [currentExercise]);
+
+  useEffect(() => {
+    let interval;
+    if (sessionActive) {
+      interval = setInterval(() => {
+        setTimeElapsed(prev => prev + 1);
+      }, 1000);
+    } else if (!sessionActive && timeElapsed !== 0) {
+      clearInterval(interval);
+    }
+    return () => clearInterval(interval);
+  }, [sessionActive, timeElapsed]);
+
+  const formatTime = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  useEffect(() => {
+    handleExerciseCompleteRef.current = () => {
+      setSessionActive(false); // Pause detection briefly
+      
+      // Save Result
+      setResults(prev => [...prev, {
+        name: currentExercise?.name || 'Exercise',
+        reps: exerciseStateRef.current.reps,
+        accuracy: 95, // mock accuracy
+        duration: timeElapsed
+      }]);
+
+      if (plan && currentExerciseIndex < plan.exercises.length - 1) {
+        // Move to next
+        setCurrentExerciseIndex(prev => prev + 1);
+        setExerciseState({ reps: 0, stage: 'down', feedback: 'Get ready', currentAngle: 0 });
+      } else {
+        // Session Complete
+        const evaluation = generateBodyEvaluation(angleHistoryRef.current);
+        setBodyEvaluation(evaluation);
+        setSessionCompleted(true);
+      }
+    };
+  }, [currentExercise, currentExerciseIndex, plan, timeElapsed]);
 
   // Pose Results Callback
   const onResults = useCallback((resultsMediaPipe) => {
@@ -104,28 +161,29 @@ export default function StartSession() {
     // Draw the video frame
     canvasCtx.drawImage(resultsMediaPipe.image, 0, 0, videoWidth, videoHeight);
 
-    if (resultsMediaPipe.poseLandmarks && currentExercise) {
+    if (resultsMediaPipe.poseLandmarks && currentExerciseRef.current) {
       // Draw skeleton
-      drawConnectors(canvasCtx, resultsMediaPipe.poseLandmarks, POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
-      drawLandmarks(canvasCtx, resultsMediaPipe.poseLandmarks, { color: '#FF0000', lineWidth: 2 });
+      window.drawConnectors(canvasCtx, resultsMediaPipe.poseLandmarks, window.POSE_CONNECTIONS, { color: '#00FF00', lineWidth: 4 });
+      window.drawLandmarks(canvasCtx, resultsMediaPipe.poseLandmarks, { color: '#FF0000', lineWidth: 2 });
 
       // Evaluate exercise
-      const evaluator = EVALUATOR_MAP[currentExercise.name];
-      if (evaluator) {
+      const evaluator = EVALUATOR_MAP[currentExerciseRef.current.name];
+      if (evaluator && sessionActiveRef.current) {
         const newState = evaluator(resultsMediaPipe.poseLandmarks, exerciseStateRef.current);
         
         // Track angles based on exercise
         const angle = newState.currentAngle;
         if (angle) {
           const newHistory = { ...angleHistoryRef.current };
-          if (currentExercise.name === 'Bicep Curl') newHistory.arms.push(angle);
-          if (currentExercise.name === 'Shoulder Raise') newHistory.shoulders.push(angle);
-          if (currentExercise.name === 'Squat') {
+          const exerciseName = currentExerciseRef.current.name;
+          if (exerciseName === 'Bicep Curl') newHistory.arms.push(angle);
+          if (exerciseName === 'Shoulder Raise') newHistory.shoulders.push(angle);
+          if (exerciseName === 'Squat') {
             newHistory.hips.push(angle);
             newHistory.knees.push(angle);
           }
-          if (currentExercise.name === 'Knee Extension') newHistory.knees.push(angle);
-          if (currentExercise.name === 'Hip Abduction') newHistory.hips.push(angle);
+          if (exerciseName === 'Knee Extension') newHistory.knees.push(angle);
+          if (exerciseName === 'Hip Abduction') newHistory.hips.push(angle);
           
           setAngleHistory(newHistory);
         }
@@ -139,32 +197,34 @@ export default function StartSession() {
           setExerciseState(newState);
 
           // Check if target reps reached
-          if (newState.reps >= currentExercise.targetReps) {
-            handleExerciseComplete();
+          if (newState.reps >= currentExerciseRef.current.targetReps) {
+            handleExerciseCompleteRef.current();
           }
         }
       }
     }
     canvasCtx.restore();
-  }, [currentExercise]);
+  }, []); // Stable callback
 
   const { pose, isLoaded } = usePose(onResults);
 
   // Animation Loop for camera
   const detectPose = useCallback(async () => {
     if (
-      typeof webcamRef.current !== "undefined" &&
-      webcamRef.current !== null &&
-      webcamRef.current.video.readyState === 4 &&
+      webcamRef.current?.video?.readyState === 4 &&
       pose
     ) {
-      // Send image to mediapipe
-      await pose.send({ image: webcamRef.current.video });
+      try {
+        await pose.send({ image: webcamRef.current.video });
+      } catch (err) {
+        console.error("Pose send error:", err);
+      }
     }
-    if (sessionActive) {
+
+    if (sessionActiveRef.current) {
       requestRef.current = requestAnimationFrame(detectPose);
     }
-  }, [pose, sessionActive]);
+  }, [pose]);
 
   useEffect(() => {
     if (sessionActive) {
@@ -177,153 +237,180 @@ export default function StartSession() {
     };
   }, [sessionActive, detectPose]);
 
-  const handleExerciseComplete = () => {
-    setSessionActive(false); // Pause detection briefly
-    
-    // Save Result
-    setResults(prev => [...prev, {
-      name: currentExercise.name,
-      reps: exerciseStateRef.current.reps,
-      accuracy: 95, // mock accuracy
-      duration: 60 // mock duration
-    }]);
-
-    if (currentExerciseIndex < plan.exercises.length - 1) {
-      // Move to next
-      setCurrentExerciseIndex(prev => prev + 1);
-      setExerciseState({ reps: 0, stage: 'down', feedback: 'Get ready', currentAngle: 0 });
-    } else {
-      // Session Complete
-      const evaluation = generateBodyEvaluation(angleHistoryRef.current);
-      setBodyEvaluation(evaluation);
-      setSessionCompleted(true);
-    }
-  };
-
-  const startCurrentExercise = () => {
-    setSessionActive(true);
-  };
-
   const submitSessionReport = async () => {
     const report = {
       exercise_results: results,
       ...bodyEvaluation
     };
     console.log("Submitting report to backend:", report);
-    // Mock API call: await axios.post(`/api/rehab/sessions/${sessionId}/complete/`, report);
-    alert("Session report submitted successfully!");
-    navigate('/dashboard/patient');
+    try {
+      const { completeSession } = await import('../../api/rehabApi');
+      await completeSession(sessionId, report);
+      alert("Session report submitted successfully!");
+      navigate('/session-result');
+    } catch (err) {
+      console.error("Failed to submit session report:", err);
+      alert("Failed to submit report. Please try again.");
+      navigate('/session-result');
+    }
   };
 
-  if (!plan) return <div className="p-8 text-center">Loading session plan...</div>;
-
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-700">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-              {plan.title}
-            </h1>
-            <p className="text-gray-400 mt-2">
-              Exercise {currentExerciseIndex + 1} of {plan.exercises.length}
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="text-sm text-gray-400 block mb-1">Status</span>
-            <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${
-              sessionCompleted ? 'bg-green-500/20 text-green-400' :
-              sessionActive ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 
-              'bg-yellow-500/20 text-yellow-400'
-            }`}>
-              {sessionCompleted ? 'Completed' : sessionActive ? 'In Progress' : 'Waiting'}
-            </span>
-          </div>
-        </div>
+    <div className="animate-fade-in">
+      {/* Header */}
+      <div className="mb-8 flex items-center gap-4">
+              <button onClick={() => navigate('/dashboard/patient')} className="rounded-lg p-2 hover:bg-[var(--color-surface)]">
+                <ArrowLeft className="h-6 w-6 text-[var(--color-text)]" />
+              </button>
+              <div>
+                <h1 className="text-3xl font-bold text-[var(--color-text)]">{plan?.name || plan?.title || "Therapy Session"}</h1>
+                <p className="text-sm text-[var(--color-text-muted)]">{plan?.exercises?.length || 0} exercises • Intermediate</p>
+              </div>
+            </div>
 
-        {/* Main Content */}
-        {!sessionCompleted ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Left Col: Instructions & Status */}
-            <div className="lg:col-span-1 space-y-6">
-              <div className="bg-gray-800 p-6 rounded-2xl border border-gray-700 shadow-xl">
-                <h2 className="text-2xl font-bold text-white mb-2">{currentExercise.name}</h2>
-                <p className="text-gray-400 mb-6">{currentExercise.instructions}</p>
-                
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-gray-900 p-4 rounded-xl border border-gray-700 text-center">
-                    <span className="text-sm text-gray-500 block">Target Reps</span>
-                    <span className="text-3xl font-bold text-blue-400">{currentExercise.targetReps}</span>
-                  </div>
-                  <div className="bg-gray-900 p-4 rounded-xl border border-gray-700 text-center">
-                    <span className="text-sm text-gray-500 block">Completed</span>
-                    <span className="text-3xl font-bold text-emerald-400">{exerciseState.reps}</span>
+            {/* Main Content Grid */}
+            {!sessionCompleted ? (
+              <div className="mb-12 grid gap-8 lg:grid-cols-3">
+                {/* Left Side - Camera Feed */}
+                <div className="lg:col-span-2">
+                  <div className="rounded-2xl border border-[var(--color-border)] bg-black p-0 shadow-sm overflow-hidden">
+                    {/* Camera Feed Placeholder */}
+                    <div className="aspect-video bg-black flex items-center justify-center relative overflow-hidden">
+                      <Webcam
+                        ref={webcamRef}
+                        className="absolute w-full h-full object-cover"
+                        mirrored={true}
+                      />
+                      <canvas
+                        ref={canvasRef}
+                        className="absolute w-full h-full object-cover z-10"
+                        style={{ transform: 'scaleX(-1)' }} // Mirror canvas to match webcam
+                      />
+
+                      {!sessionActive && (
+                        <div className="absolute inset-0 z-20 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center">
+                          <div className="bg-white/10 p-6 rounded-full backdrop-blur-md mb-4">
+                            <Play className="h-12 w-12 text-white opacity-80" />
+                          </div>
+                          <p className="text-white font-medium">Ready to start?</p>
+                          <p className="text-white/60 text-sm mt-1">Position yourself in the center of the frame</p>
+                        </div>
+                      )}
+                      
+                      {/* Status Indicators */}
+                      <div className="absolute top-4 right-4 space-y-2 z-20">
+                        <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 text-white ${sessionActive ? 'bg-green-500 bg-opacity-80' : 'bg-red-500 bg-opacity-80'}`}>
+                          <div className={`h-2 w-2 bg-white rounded-full ${sessionActive ? 'animate-pulse' : ''}`}></div>
+                          {sessionActive ? 'Tracking Active' : 'Camera Paused'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="bg-[var(--color-surface)] p-6 border-t border-[var(--color-border)]">
+                      <div className="flex gap-3">
+                        {!sessionActive ? (
+                          <button 
+                            onClick={() => setSessionActive(true)}
+                            disabled={!isLoaded}
+                            className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            <Play className="h-4 w-4" />
+                            {isLoaded ? 'Start Session' : 'Initializing AI...'}
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => setSessionActive(false)}
+                            className="flex-1 btn-secondary flex items-center justify-center gap-2 border-red-500 text-red-500 hover:bg-red-50"
+                          >
+                            <Square className="h-4 w-4" />
+                            Pause
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => {
+                            if(window.confirm('Are you sure you want to skip this exercise?')) {
+                              handleExerciseCompleteRef.current();
+                            }
+                          }}
+                          className="flex-1 btn-secondary flex items-center justify-center gap-2"
+                        >
+                          Skip Exercise
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-900 p-4 rounded-xl border border-gray-700">
-                  <span className="text-sm text-gray-500 block mb-1">AI Feedback</span>
-                  <span className={`font-semibold text-lg ${
-                    exerciseState.feedback === 'Good form' ? 'text-emerald-400' : 'text-yellow-400'
-                  }`}>
-                    {exerciseState.feedback}
-                  </span>
+                {/* Right Side - Exercise Info & Feedback */}
+                <div className="space-y-6">
+                  {/* Exercise Details */}
+                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+                    <h3 className="font-semibold text-[var(--color-text)] mb-4">Exercise Details</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-[var(--color-text-muted)]">Current Exercise</p>
+                        <p className="mt-1 text-lg font-bold text-[var(--color-primary)]">{currentExercise?.name || 'Loading...'}</p>
+                        <p className="text-sm text-[var(--color-text-muted)] mt-1">{currentExercise?.instructions}</p>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <p className="text-xs text-[var(--color-text-muted)]">Target Reps</p>
+                          <p className="mt-1 text-lg font-bold text-[var(--color-primary)]">{currentExercise?.targetReps}</p>
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-[var(--color-text-muted)]">Exercise</p>
+                          <p className="mt-1 text-lg font-bold text-[var(--color-accent)]">{currentExerciseIndex + 1} of {plan?.exercises?.length || 0}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Real-time Feedback */}
+                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-soft)] p-6">
+                    <h3 className="font-semibold text-[var(--color-text)] mb-4">Live Feedback</h3>
+                    <div className={`rounded-lg p-4 text-center border border-[var(--color-border)] transition-colors duration-300 ${
+                      exerciseState.feedback === 'Good form' ? 'bg-green-50 border-green-200' : 
+                      exerciseState.feedback === 'Get ready' ? 'bg-white' : 'bg-yellow-50 border-yellow-200'
+                    }`}>
+                      <p className={`text-sm font-semibold ${
+                        exerciseState.feedback === 'Good form' ? 'text-green-700' : 
+                        exerciseState.feedback === 'Get ready' ? 'text-[var(--color-text-muted)]' : 'text-yellow-700'
+                      }`}>
+                        {exerciseState.feedback}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Session Stats */}
+                  <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
+                    <h3 className="font-semibold text-[var(--color-text)] mb-4">Session Stats</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs text-[var(--color-text-muted)]">Time Elapsed</p>
+                        <p className="mt-1 text-lg font-bold text-[var(--color-text)]">{formatTime(timeElapsed)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--color-text-muted)]">Reps Completed</p>
+                        <p className="mt-1 text-3xl font-bold text-[var(--color-primary)]">{exerciseState.reps} <span className="text-lg text-[var(--color-text-muted)]">/ {currentExercise?.targetReps}</span></p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-[var(--color-text-muted)]">Phase</p>
+                        <p className="mt-1 text-lg font-bold text-[var(--color-success)] capitalize">{exerciseState.stage}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              {!sessionActive ? (
-                <button
-                  onClick={startCurrentExercise}
-                  disabled={!isLoaded}
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:text-gray-500 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-blue-500/20"
-                >
-                  <Video size={24} />
-                  {isLoaded ? 'Start Tracking' : 'Initializing AI...'}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setSessionActive(false)}
-                  className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg shadow-red-500/20"
-                >
-                  Pause Tracking
-                </button>
-              )}
-            </div>
-
-            {/* Right Col: Camera Feed */}
-            <div className="lg:col-span-2 relative bg-black rounded-2xl overflow-hidden border-2 border-gray-700 shadow-2xl aspect-video flex items-center justify-center">
-              {!sessionActive && (
-                <div className="absolute inset-0 z-10 bg-gray-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                  <Play size={64} className="text-gray-600 mb-4" />
-                  <p className="text-gray-400 text-lg font-medium">Click Start Tracking to begin</p>
-                </div>
-              )}
-              
-              <Webcam
-                ref={webcamRef}
-                className="absolute w-full h-full object-cover"
-                mirrored={true}
-              />
-              <canvas
-                ref={canvasRef}
-                className="absolute w-full h-full object-cover z-0"
-                style={{ transform: 'scaleX(-1)' }} // Mirror canvas to match webcam
-              />
-            </div>
-            
-          </div>
-        ) : (
-          <SessionReport 
-            results={results}
-            bodyEvaluation={bodyEvaluation}
-            onSubmit={submitSessionReport}
-          />
-        )}
-
-      </div>
+            ) : (
+              <div className="mb-12">
+                <SessionReport 
+                  results={results}
+                  bodyEvaluation={bodyEvaluation}
+                  onSubmit={submitSessionReport}
+                />
+              </div>
+            )}
     </div>
-  );
+  )
 }

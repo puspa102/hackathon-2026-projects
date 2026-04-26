@@ -1,4 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { getPatientSessions } from '../../api/rehabApi'
+import { getMyPatients } from '../../api/connectionsApi'
 import { 
   ChevronLeft, 
   Calendar, 
@@ -14,51 +17,77 @@ import {
 
 function PatientDetail() {
   const { id } = useParams()
+  const [sessions, setSessions] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [patientInfo, setPatientInfo] = useState(null)
+  
+  useEffect(() => {
+    getPatientSessions(id)
+      .then(data => setSessions(data))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false))
+      
+    getMyPatients()
+      .then(patients => {
+        const found = patients.find(p => p.id === parseInt(id))
+        setPatientInfo(found || null)
+      })
+      .catch(err => console.error(err))
+  }, [id])
 
-  // Mock data matching the provided mockup
+  const latestSession = sessions[0]
+
+  // Map real feedback to notes
+  const notes = sessions
+    .filter(s => s.feedback)
+    .map((s, index) => ({
+      id: s.feedback.id || index,
+      date: new Date(s.feedback.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' }),
+      tag: 'EVALUATION',
+      content: s.feedback.guidance,
+      rating: s.feedback.rating
+    }))
+
+  // Extract unique plans from sessions
+  const uniquePlans = []
+  const planIds = new Set()
+  sessions.forEach(s => {
+    if (s.plan_id && !planIds.has(s.plan_id)) {
+      planIds.add(s.plan_id)
+      uniquePlans.push({
+        id: s.plan_id,
+        name: s.plan_name,
+        details: 'Assigned Therapy Plan',
+        icon: '📋'
+      })
+    }
+  })
+
   const patient = {
     id,
-    name: 'Sarah Chen',
-    condition: 'Post-ACL Reconstruction (Left)',
-    timeline: 'Day 45 of 120',
-    compliance: '92%',
-    lastSession: 'Oct 24',
-    painLevel: '2.4',
-    painTrend: '-0.5',
-    initials: 'SC',
-    notes: [
-      { 
-        id: 1, 
-        date: 'OCT 24, 2023 • 09:15 AM', 
-        tag: 'FOLLOW-UP', 
-        content: 'Patient reported morning stiffness but pain decreased during exercise. Increased terminal knee extension (TKE) repetitions to 15. Manual therapy performed to address medial scar tissue adhesion.' 
-      },
-      { 
-        id: 2, 
-        date: 'OCT 18, 2023 • 11:30 AM', 
-        tag: 'ASSESSMENT', 
-        content: 'Range of motion test: Extension 0°, Flexion 115°. Progressing well toward Week 6 goals. Initiated weight-bearing exercise transition.' 
-      }
+    name: patientInfo?.name || 'Loading...',
+    condition: 'Physical Rehabilitation',
+    timeline: patientInfo ? `Connected since ${new Date(patientInfo.connected_at).toLocaleDateString()}` : '',
+    lastSession: latestSession ? new Date(latestSession.started_at).toLocaleDateString() : 'None',
+    notes: notes,
+    currentPlan: uniquePlans.length > 0 ? uniquePlans : [
+      { id: 'none', name: 'No plans assigned yet', details: 'Create a plan to get started', icon: '❓' }
     ],
-    currentPlan: [
-      { id: 1, name: 'Quadriceps Sets', details: '3 sets • 15 reps • 5s hold', icon: '⚡' },
-      { id: 2, name: 'Heel Slides', details: '2 sets • 10 reps • Slow tempo', icon: '🚶' },
-      { id: 3, name: 'Straight Leg Raises', details: '3 sets • 12 reps • No lag', icon: '🦵' }
-    ],
-    sessionReport: {
-      exercise_results: [
-        { name: 'Bicep Curl', reps: 5, accuracy: '95%', duration: '60s' },
-        { name: 'Squat', reps: 5, accuracy: '95%', duration: '60s' },
-      ],
-      body_part_scores: [
-        { part: "Knees", score: 96, color: 'bg-emerald-500' },
-        { part: "Arms", score: 92, color: 'bg-blue-500' },
-        { part: "Shoulders", score: 85, color: 'bg-amber-500' },
-        { part: "Hips", score: 78, color: 'bg-orange-500' },
-        { part: "Ankles", score: 75, color: 'bg-slate-500' }
-      ]
-    }
   }
+
+  const sessionReport = latestSession ? {
+    exercise_results: latestSession.results?.map(r => ({
+      name: r.exercise_name,
+      reps: r.reps,
+      accuracy: `${Math.round(r.accuracy || 0)}%`,
+      duration: `${r.duration}s`
+    })) || [],
+    body_part_scores: latestSession.body_part_scores?.map(s => ({
+      part: s.part,
+      score: s.score,
+      color: s.score >= 90 ? 'bg-emerald-500' : s.score >= 80 ? 'bg-blue-500' : 'bg-amber-500'
+    })) || []
+  } : null
 
   return (
     <div className="animate-fade-in pb-12">
@@ -112,7 +141,7 @@ function PatientDetail() {
                <Sparkles size={120} />
              </div>
              <div className="flex items-center gap-2 mb-6 relative z-10">
-               <Sparkles size={20} className="text-blue-600" />
+               <div className="h-1 w-4 bg-blue-600 rounded-full"></div>
                <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">AI Insights</h3>
              </div>
              <p className="text-base leading-relaxed text-slate-900 font-bold relative z-10">
@@ -136,6 +165,10 @@ function PatientDetail() {
           <section className="elevated-card border-none p-10 shadow-lg">
             <div className="flex items-center justify-between mb-10">
               <div>
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] mb-2">
+                   <div className="h-1 w-4 bg-[var(--color-primary)] rounded-full"></div>
+                   Anatomical Analytics
+                </div>
                 <h3 className="text-2xl font-bold text-slate-900">Latest Session Report</h3>
                 <p className="text-sm text-slate-500 font-medium mt-1">Generated automatically after session completion</p>
               </div>
@@ -145,50 +178,58 @@ function PatientDetail() {
             </div>
             
             <div className="space-y-8">
-              {/* Exercise Table */}
-              <div className="overflow-hidden rounded-2xl border border-slate-100 shadow-sm">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50">
-                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Exercise</th>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Reps</th>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Accuracy</th>
-                      <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Duration</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {patient.sessionReport.exercise_results.map((res, i) => (
-                      <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-5 text-sm font-bold text-slate-900">{res.name}</td>
-                        <td className="px-6 py-5 text-sm font-black text-slate-900 text-center">{res.reps}</td>
-                        <td className="px-6 py-5 text-sm font-black text-emerald-600 text-center">{res.accuracy}</td>
-                        <td className="px-6 py-5 text-sm font-bold text-slate-500 text-right">{res.duration}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {loading ? (
+                 <div className="py-12 flex justify-center text-slate-400">Loading Session Data...</div>
+              ) : !sessionReport ? (
+                 <div className="py-12 text-center text-slate-400 font-bold">No session data available for this patient yet.</div>
+              ) : (
+                <>
+                  {/* Exercise Table */}
+                  <div className="overflow-hidden rounded-2xl border border-slate-100 shadow-sm">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50">
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Exercise</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Reps</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Accuracy</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {sessionReport.exercise_results.map((res, i) => (
+                          <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-5 text-sm font-bold text-slate-900">{res.name}</td>
+                            <td className="px-6 py-5 text-sm font-black text-slate-900 text-center">{res.reps}</td>
+                            <td className="px-6 py-5 text-sm font-black text-emerald-600 text-center">{res.accuracy}</td>
+                            <td className="px-6 py-5 text-sm font-bold text-slate-500 text-right">{res.duration}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-              {/* Body Part Scores */}
-              <div>
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 px-1">Biometric Body Part Scores</h4>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                  {patient.sessionReport.body_part_scores.map((score, i) => (
-                    <div key={i} className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                       <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-slate-500">{score.part}</span>
-                          <span className="text-sm font-black text-slate-900">{score.score}</span>
-                       </div>
-                       <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${score.color} transition-all duration-1000`}
-                            style={{ width: `${score.score}%` }}
-                          />
-                       </div>
+                  {/* Body Part Scores */}
+                  <div>
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 px-1">Biometric Body Part Scores</h4>
+                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                      {sessionReport.body_part_scores.map((score, i) => (
+                        <div key={i} className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                          <div className="flex items-center justify-between mb-3">
+                              <span className="text-xs font-bold text-slate-500">{score.part}</span>
+                              <span className="text-sm font-black text-slate-900">{score.score}</span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${score.color} transition-all duration-1000`}
+                                style={{ width: `${score.score}%` }}
+                              />
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           </section>
 
@@ -196,11 +237,15 @@ function PatientDetail() {
           <section className="elevated-card border-none p-10 shadow-lg">
             <div className="flex items-center justify-between mb-10">
               <div>
+                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] mb-2">
+                   <div className="h-1 w-4 bg-[var(--color-primary)] rounded-full"></div>
+                   Physician Records
+                </div>
                 <h3 className="text-2xl font-bold">Clinical Notes</h3>
                 <p className="text-sm text-slate-500 font-medium mt-1">Timeline of assessments and adjustments</p>
               </div>
               <Link 
-                to="/doctor/feedback"
+                to={`/doctor/feedback/${id}`}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all shadow-md"
               >
                 <Plus size={16} /> New Entry
@@ -208,7 +253,7 @@ function PatientDetail() {
             </div>
             
             <div className="space-y-12">
-              {patient.notes.map((note, i) => (
+              {patient.notes.length > 0 ? patient.notes.map((note, i) => (
                 <div key={note.id} className="relative pl-12">
                    <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full bg-white border-4 border-slate-900 ring-8 ring-slate-50 shadow-sm z-10"></div>
                    {i !== patient.notes.length - 1 && <div className="absolute left-[7.5px] top-8 bottom-[-48px] w-0.5 bg-slate-100"></div>}
@@ -217,13 +262,17 @@ function PatientDetail() {
                         <span className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">{note.date}</span>
                         <div className="h-1 w-1 rounded-full bg-slate-300"></div>
                         <span className="text-[9px] font-black tracking-widest bg-blue-50 text-blue-600 px-2 py-1 rounded-lg border border-blue-100">{note.tag}</span>
+                        <div className="h-1 w-1 rounded-full bg-slate-300"></div>
+                        <span className="text-[10px] font-bold text-amber-500">{"★".repeat(note.rating)}{"☆".repeat(5 - note.rating)}</span>
                      </div>
                    </div>
-                   <p className="text-base leading-relaxed text-slate-600 font-medium bg-slate-50/50 p-6 rounded-[1.5rem] border border-slate-100/50">
+                   <p className="text-base leading-relaxed text-slate-600 font-medium bg-slate-50/50 p-6 rounded-[1.5rem] border border-slate-100/50 whitespace-pre-wrap">
                      {note.content}
                    </p>
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm text-slate-400 italic py-8 text-center border-2 border-dashed border-slate-100 rounded-[2rem]">No clinical feedback provided yet.</p>
+              )}
             </div>
           </section>
         </div>
@@ -231,8 +280,12 @@ function PatientDetail() {
         {/* Right Sidebar */}
         <div className="lg:col-span-4 space-y-8">
           <section className="elevated-card border-none p-8 shadow-lg">
-            <div className="flex items-center justify-between mb-8">
-               <h3 className="text-xl font-bold text-slate-900">Current Plan</h3>
+             <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] mb-4">
+                <div className="h-1 w-4 bg-[var(--color-primary)] rounded-full"></div>
+                Active Protocol
+             </div>
+             <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-bold text-slate-900">Current Plan</h3>
                <Link to="/doctor/assign" className="text-xs font-bold text-blue-600 hover:underline">Modify</Link>
             </div>
             <div className="space-y-4">

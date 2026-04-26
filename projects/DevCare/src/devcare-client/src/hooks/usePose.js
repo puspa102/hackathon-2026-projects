@@ -1,8 +1,4 @@
-import '@mediapipe/pose';
-import '@mediapipe/camera_utils';
-
-const Pose = window.Pose;
-const POSE_CONNECTIONS = window.POSE_CONNECTIONS;
+// MediaPipe is loaded via CDN in index.html to avoid Vite ESM issues
 import { useEffect, useRef, useState } from 'react';
 
 /**
@@ -14,7 +10,12 @@ export const usePose = (onResultsCallback) => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const pose = new Pose({
+    if (!window.Pose) {
+      console.error("MediaPipe Pose not loaded from CDN");
+      return;
+    }
+
+    const pose = new window.Pose({
       locateFile: (file) => {
         return `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`;
       }
@@ -33,7 +34,6 @@ export const usePose = (onResultsCallback) => {
     poseRef.current = pose;
     
     // Simulate loading completion since MediaPipe initializes asynchronously
-    // In a real app we'd wait for the first result or use an initialize callback
     setTimeout(() => setIsLoaded(true), 1000);
 
     return () => {
