@@ -80,6 +80,15 @@ export default function DoctorTabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color }) => (
+            <MaterialIcons size={26} name="person" color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

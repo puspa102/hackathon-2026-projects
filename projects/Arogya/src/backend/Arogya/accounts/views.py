@@ -1,29 +1,25 @@
-from django.contrib.auth import authenticate
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import User
-from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
+from .models import DoctorProfile, PatientProfile
+from .serializers import (
+    LoginSerializer,
+    RegisterSerializer,
+    UpdateProfileSerializer,
+    UserSerializer,
+)
 
 
 class RegisterView(APIView):
-    """
-    User registration endpoint
-    Creates a new user and returns authentication token
-    """
-
-    permission_classes = []  # Allow anyone to register
+    permission_classes = []
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-
-            # Create or get token for the user
-            token, created = Token.objects.get_or_create(user=user)
-
+            token, _ = Token.objects.get_or_create(user=user)
             return Response(
                 {
                     "message": "Account created successfully",
@@ -32,26 +28,17 @@ class RegisterView(APIView):
                 },
                 status=status.HTTP_201_CREATED,
             )
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LoginView(APIView):
-    """
-    User login endpoint
-    Authenticates user and returns authentication token
-    """
-
-    permission_classes = []  # Allow anyone to login
+    permission_classes = []
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data["user"]
-
-            # Create or get token for the user
-            token, created = Token.objects.get_or_create(user=user)
-
+            token, _ = Token.objects.get_or_create(user=user)
             return Response(
                 {
                     "message": "Login successful",
@@ -60,16 +47,10 @@ class LoginView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
-    """
-    User logout endpoint
-    Deletes the user's authentication token
-    """
-
     def post(self, request):
         try:
             request.user.auth_token.delete()
@@ -83,10 +64,6 @@ class LogoutView(APIView):
 
 
 class UserProfileView(APIView):
-    """
-    Get and update current user's profile
-    """
-
     def get(self, request):
         if not request.user.is_authenticated:
             return Response(
@@ -102,11 +79,16 @@ class UserProfileView(APIView):
                 {"error": "Authentication required"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer = UpdateProfileSerializer(
+            request.user, data=request.data, partial=True
+        )
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
             return Response(
-                {"message": "Profile updated successfully", "user": serializer.data},
+                {
+                    "message": "Profile updated successfully",
+                    "user": UserSerializer(user).data,
+                },
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

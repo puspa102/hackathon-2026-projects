@@ -54,7 +54,7 @@ class ApiClient {
       };
 
       if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+        headers["Authorization"] = `Token ${token}`;
       }
 
       const options: RequestInit = {
