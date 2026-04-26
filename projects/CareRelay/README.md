@@ -4,10 +4,10 @@
 CareRelay is a clinical workflow optimization platform and emergency-access system designed to combat physician burnout and deliver critical patient intelligence when seconds count.
 
 ## Team Members
-* Binit KC
-* Smriti Niroula
-* Sanskriti Poudel
-* Manushi Parajuli
+* Binit KC (GitHub: https://github.com/Binit17)
+* Smriti Niroula (Nursing Background helped in overall design and implementation)
+* Sanskriti Poudel (GitHub: https://github.com/Sanskriti1158)
+* Manushi Parajuli (GitHub: https://github.com/manushiparajuli)
 
 ---
 
@@ -135,5 +135,4 @@ npm run dev
 Navigate to `http://localhost:5173` to view the CareRelay Dashboard.
 
 ## Demo
-*(Link to presentation video / Live URL will be pasted here)*
-We have included key demonstration recordings and screenshots in the `/demo` folder of this repository.
+- 🎥 Video Demo: [Watch here](https://drive.google.com/drive/folders/15xEPpjy6-AztsoLH5c_u5KjyDGuE8W4C)
