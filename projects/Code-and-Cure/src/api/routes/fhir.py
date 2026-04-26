@@ -1,7 +1,7 @@
 import hashlib
 import json
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, HTTPException, Depends
 from src.api.models import EHRExportResponse, EMRHandoffResponse
@@ -14,6 +14,8 @@ from src.database.db_client import (
     insert_fhir_record,
     get_fhir_record_by_soap_note,
     set_soap_export_workflow,
+    get_doctor_by_user_id,
+    doctor_owns_appointment,
 )
 
 router = APIRouter()
@@ -23,6 +25,12 @@ _TARGET_EMR = "Athenahealth-sim"
 
 @router.get("/export/{appointment_id}", response_model=EHRExportResponse, dependencies=[Depends(require_role("doctor"))])
 async def export_to_emr(appointment_id: str, current_user: dict = Depends(get_current_user)):
+    doctor = get_doctor_by_user_id(current_user["user_id"])
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found for current user.")
+    if not doctor_owns_appointment(doctor["id"], appointment_id):
+        raise HTTPException(status_code=403, detail="You can only export records for your own appointments.")
+
     """
     Doctor-only route.
     Enforces SOAP approval gate, builds FHIR R4 Bundle via Person 3,
@@ -83,12 +91,18 @@ async def export_to_emr(appointment_id: str, current_user: dict = Depends(get_cu
         export_id=str(uuid.uuid4()),
         status="success",
         fhir_bundle=result.bundle,
-        submission_timestamp=datetime.now(),
+        submission_timestamp=datetime.now(timezone.utc),
     )
 
 
 @router.post("/submit/{appointment_id}", response_model=EMRHandoffResponse, dependencies=[Depends(require_role("doctor"))])
-async def submit_to_emr(appointment_id: str):
+async def submit_to_emr(appointment_id: str, current_user: dict = Depends(get_current_user)):
+    doctor = get_doctor_by_user_id(current_user["user_id"])
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor profile not found for current user.")
+    if not doctor_owns_appointment(doctor["id"], appointment_id):
+        raise HTTPException(status_code=403, detail="You can only submit records for your own appointments.")
+
     """
     Doctor-only route — synthetic EMR handoff.
 
@@ -122,7 +136,7 @@ async def submit_to_emr(appointment_id: str):
     payload_hash = hashlib.sha256(bundle_str.encode()).hexdigest()[:16]
 
     submission_id = str(uuid.uuid4())
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     ack_time = now + timedelta(seconds=2)
 
     # 4. Persist synthetic submission record alongside the FHIR bundle records
