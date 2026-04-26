@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'checkins',
     'medicines',
     'reports',
+    'AI'
 ]
 
 MIDDLEWARE = [
