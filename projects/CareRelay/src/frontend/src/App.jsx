@@ -595,14 +595,6 @@ function MedicationPanelDense({ medications }) {
 }
 
 function IDCard({ data }) {
-  const [qr, setQr] = useState(null);
-
-  useEffect(() => {
-    getQr().then(setQr).catch(() => setQr(null));
-  }, []);
-
-  const meds = data.snapshot.currentMedications.slice(0, 4);
-  const allergies = data.snapshot.allergies;
   return (
     <section className="page">
       <div className="section-heading">
@@ -611,30 +603,12 @@ function IDCard({ data }) {
           <h1>Medical ID Card</h1>
         </div>
       </div>
-      <div className="card-stage">
-        <article className="medical-card">
-          <div className="card-topline">CareRelay Medical ID</div>
-          <h2>{data.patient.name}</h2>
-          <p>{titleCase(data.patient.gender)} · {data.patient.age} · MRN {data.patient.mrn}</p>
-          <div className="card-section">
-            <strong>Critical allergies</strong>
-            <span>{allergies.map((item) => compactCondition(item.name)).join(", ") || "None documented"}</span>
-          </div>
-          <div className="card-section">
-            <strong>Key medications</strong>
-            <span>{meds.map((item) => shortMedName(item.name)).join(", ")}</span>
-          </div>
-          <div className="card-footer">Emergency contact: Demo placeholder</div>
-        </article>
-
-        <article className="medical-card back">
-          <div className="card-topline">Scan for clinician snapshot</div>
-          <div className="qr-box">
-            {qr ? <img src={qr.qr} alt="CareRelay QR code" /> : <QrCode size={96} />}
-          </div>
-          <p>{qr?.url || "http://localhost:5173/patient/default"}</p>
-          <div className="card-footer">Synthetic demo only. Not for clinical use.</div>
-        </article>
+      <div className="card-stage" style={{ display: "flex", justifyContent: "center", padding: "20px" }}>
+        <img 
+          src="/ID_card.jpeg" 
+          alt="Alex Morgan Medical ID Card" 
+          style={{ width: "100%", maxWidth: "800px", borderRadius: "16px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
+        />
       </div>
     </section>
   );
