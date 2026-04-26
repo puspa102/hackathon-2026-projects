@@ -1,0 +1,85 @@
+import axios from "axios";
+import { api } from "./axios";
+
+export const RESET_PASSWORD_TOKEN_KEY = "refai-reset-access-token";
+
+export interface DoctorProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  created_at?: string;
+}
+
+interface SignInResponse {
+  access_token?: string;
+}
+
+interface SignUpPayload {
+  email: string;
+  password: string;
+  full_name: string;
+}
+
+interface SignInPayload {
+  email: string;
+  password: string;
+}
+
+export async function signIn(payload: SignInPayload) {
+  const { data } = await api.post<SignInResponse>(
+    "/api/v1/auth/signin",
+    payload,
+  );
+
+  if (!data.access_token) {
+    throw new Error("Sign in failed: no access token returned");
+  }
+
+  const profileResponse = await api.get<DoctorProfile>(
+    "/api/v1/doctors/profile",
+    {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    },
+  );
+
+  return {
+    accessToken: data.access_token,
+    doctor: profileResponse.data,
+  };
+}
+
+export async function signUp(payload: SignUpPayload) {
+  await api.post("/api/v1/auth/signup", payload);
+}
+
+export async function forgotPassword(email: string) {
+  await api.post("/api/v1/auth/forgot-password", { email });
+}
+
+export async function resetPassword(accessToken: string, newPassword: string) {
+  await api.post(
+    "/api/v1/auth/reset-password",
+    { new_password: newPassword },
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
+}
+
+export async function signOut() {
+  await api.post("/api/v1/auth/signout");
+}
+
+export function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError<{ error?: string; message?: string }>(error)) {
+    return (
+      error.response?.data?.error ?? error.response?.data?.message ?? fallback
+    );
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+}

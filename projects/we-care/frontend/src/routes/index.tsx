@@ -4,13 +4,14 @@ import DashboardPage from "../pages/DashboardPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import LoginPage from "../pages/LoginPage";
 import NewReferralPage from "../pages/NewReferralPage";
-import ReferralsPage from "../pages/ReferralsPage";
 import PatientBookingConfirmationPage from "../pages/PatientBookingConfirmationPage";
 import PatientBookingPage from "../pages/PatientBookingPage";
 import PatientBookingReviewPage from "../pages/PatientBookingReviewPage";
 import PatientPortalPage from "../pages/PatientPortalPage";
 import { NotFoundPage } from "../pages/placeholders";
 import ReferralDetailPage from "../pages/ReferralDetailPage";
+import ReferralsPage from "../pages/ReferralsPage";
+import ResetPasswordPage from "../pages/ResetPasswordPage";
 import SettingsPage from "../pages/SettingsPage";
 import SignupPage from "../pages/SignupPage";
 import SpecialistsPage from "../pages/SpecialistsPage";
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
       { path: "/login", element: <LoginPage /> },
       { path: "/signup", element: <SignupPage /> },
       { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/reset-password", element: <ResetPasswordPage /> },
     ],
   },
 

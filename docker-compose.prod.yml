@@ -5,12 +5,12 @@ services:
       target: runner
     image: we-care-backend:prod
     env_file:
-      - ./projects/we-care/.env
+      - .env
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:${PORT:-3000}/health"]
       interval: 30s
       timeout: 5s
       retries: 3

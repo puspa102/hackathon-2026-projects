@@ -1,5 +1,6 @@
 import { LogOut } from "lucide-react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { signOut } from "../../lib/auth-api";
 import { useAuthStore } from "../../stores/authStore";
 
 interface NavTab {
@@ -25,9 +26,13 @@ export function Topbar() {
     navigate(`/referrals?type=${type}`);
   }
 
-  function handleLogout() {
-    clearAuth();
-    navigate("/login", { replace: true });
+  async function handleLogout() {
+    try {
+      await signOut();
+    } finally {
+      clearAuth();
+      navigate("/login", { replace: true });
+    }
   }
 
   const isActive = (type: string) =>

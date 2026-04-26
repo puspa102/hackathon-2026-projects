@@ -105,6 +105,7 @@ Schema: `backend/supabase/schema.sql`
    - `SUPABASE_URL`
    - `SUPABASE_ANON_KEY`
    - `GEMINI_API_KEY`
+     - `FRONTEND_URL` (e.g. `http://localhost:5173` for password reset redirects)
 3. Run schema and seed against your Supabase project:
    ```
    backend/supabase/schema.sql

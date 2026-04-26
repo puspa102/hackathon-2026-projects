@@ -11,9 +11,9 @@ services:
       - ./projects/we-care/backend/package.json:/app/package.json
       - ./projects/we-care/backend/tsconfig.json:/app/tsconfig.json
     env_file:
-      - ./projects/we-care/.env
+      - .env
     ports:
-      - "3000:3000"
+      - "${PORT:-3000}:${PORT:-3000}"
     restart: unless-stopped
 
   frontend:
@@ -29,8 +29,9 @@ services:
       - ./projects/we-care/frontend/vite.config.ts:/app/vite.config.ts
       - ./projects/we-care/frontend/tsconfig.json:/app/tsconfig.json
       - ./projects/we-care/frontend/tsconfig.app.json:/app/tsconfig.app.json
+      - ./projects/we-care/frontend/tsconfig.node.json:/app/tsconfig.node.json
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - VITE_API_URL=http://localhost:${PORT:-3000}
     ports:
       - "5173:5173"
     depends_on:
