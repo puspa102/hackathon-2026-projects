@@ -13,18 +13,18 @@ from db.db import (
     save_physician,
 )
 
-
 AUTH_MODE_KEY = "auth_mode_choice"
 CURRENT_PAGE_KEY = "current_page"
-LOGIN_OPTION = "Login (Returning Patient)"
+LOGIN_OPTION = "Login (Patient)"
 SIGNUP_OPTION = "Signup (New Patient)"
+DOCTOR_LOGIN = "Doctor Access" # New Option
 
 
 def _extract_display_name(profile: dict) -> str:
-    raw_name = profile.get("name", "Patient")
+    raw_name = profile.get("name", "User")
     if isinstance(raw_name, list) and raw_name:
-        return raw_name[0].get("text", "Patient")
-    return raw_name if isinstance(raw_name, str) else "Patient"
+        return raw_name[0].get("text", "User")
+    return raw_name if isinstance(raw_name, str) else "User"
 
 
 def _load_fhir_patient_profile(patient_id: str) -> dict:
@@ -76,63 +76,16 @@ def _render_patient_dashboard():
 
     with st.expander("View FHIR Patient Data (Table)", expanded=True):
         fhir_patient = st.session_state.get("user_profile", {})
-        patient_id = st.session_state.get("patient_id")
         
-        # Extract fields for the unified view
-        names = fhir_patient.get("name", [])
-        telecom = fhir_patient.get("telecom", [])
-        address = fhir_patient.get("address", [])
-
-        # 1. Prepare the Data
+        # Prepare Data
         summary_rows = [
             {"Field": "Resource Type", "Value": fhir_patient.get("resourceType", "Patient")},
             {"Field": "FHIR ID", "Value": fhir_patient.get("id", patient_id)},
-            {"Field": "Name", "Value": names[0].get("text", "NA") if names else "NA"},
             {"Field": "Gender", "Value": fhir_patient.get("gender", "NA")},
             {"Field": "Birth Date", "Value": fhir_patient.get("birthDate", "NA")},
-            {"Field": "Email", "Value": telecom[0].get("value", "NA") if telecom else "NA"},
-            {"Field": "Address", "Value": address[0].get("text", "NA") if address else "NA"},
         ]
 
-        # 2. THE UI CHANGE: Use st.dataframe instead of st.table
-        st.markdown("#### 📄 Patient Resource Summary")
-        st.dataframe(
-            pd.DataFrame(summary_rows),
-            use_container_width=True,
-            hide_index=True, # This removes the 0, 1, 2, 3 column
-            column_config={
-                "Field": st.column_config.TextColumn("Clinical Field", width="medium"),
-                "Value": st.column_config.TextColumn("Data Value", width="large")
-            }
-        )
-
-        st.markdown("**FHIR Allergies**")
-        allergy_rows = [
-            {
-                "Allergen": item.get("allergen", "NA"),
-                "Severity": item.get("severity", "unknown"),
-            }
-            for item in allergies
-        ]
-        st.table(pd.DataFrame(allergy_rows if allergy_rows else [{"Allergen": "None", "Severity": "NA"}]))
-
-        st.markdown("**FHIR Conditions**")
-        condition_rows = [
-            {
-                "Condition": item.get("condition_name", "NA"),
-                "ICD-10": item.get("icd10_code", ""),
-            }
-            for item in conditions
-        ]
-        st.table(pd.DataFrame(condition_rows if condition_rows else [{"Condition": "None", "ICD-10": ""}]))
-
-        st.markdown("**FHIR Physician Link**")
-        physician_rows = [{
-            "Doctor Name": physician.get("doctor_name", "Not Provided"),
-            "Hospital/Clinic": physician.get("hospital_name", "Not Provided"),
-            "Email": physician.get("email", "Not Provided"),
-        }]
-        st.table(pd.DataFrame(physician_rows))
+        st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
 
     col_a, col_b = st.columns(2)
     with col_a:
@@ -140,10 +93,34 @@ def _render_patient_dashboard():
             st.session_state[CURRENT_PAGE_KEY] = "Symptom Checker"
             st.rerun()
     with col_b:
-        if st.button("Logout and Switch Account", use_container_width=True):
+        if st.button("Logout", use_container_width=True):
             _set_logged_out_state()
             st.rerun()
 
+def _render_doctor_login():
+    """Renders the simplified doctor login using email bridge."""
+    st.subheader("👨‍⚕️ Provider Portal")
+    st.caption("Doctors: Enter your email to see patients who have assigned you.")
+    
+    doc_email = st.text_input("Professional Email", placeholder="doctor@hospital.com")
+    doc_name = st.text_input("Your Name (Optional)", placeholder="Dr. Smith")
+
+    if st.button("Access Dashboard", type="primary", use_container_width=True):
+        clean_email = doc_email.strip().lower()
+        if not clean_email:
+            st.warning("Please enter your professional email.")
+            return
+
+        # Set Session State for Doctor
+        st.session_state.is_authenticated = True
+        st.session_state.user_profile = {
+            "name": doc_name if doc_name else "Provider",
+            "email": clean_email,
+            "role": "doctor"
+        }
+        st.session_state[CURRENT_PAGE_KEY] = "Doctor Dashboard"
+        st.success(f"Access granted for {clean_email}")
+        st.rerun()
 
 def _set_logged_out_state():
     st.session_state.is_authenticated = False
@@ -151,29 +128,17 @@ def _set_logged_out_state():
     st.session_state.patient_id = None
     st.session_state[AUTH_MODE_KEY] = LOGIN_OPTION
     st.session_state[CURRENT_PAGE_KEY] = "Dashboard"
-    st.session_state["live_transcription"] = ""
-    st.session_state["symptom_input_mode"] = "Type my symptoms"
-    st.session_state.pop("symptom_live_mic_output", None)
-    st.session_state.pop("symptom_live_mic", None)
-    st.session_state.pop("biomistral_mic_output", None)
-    st.session_state.pop("biomistral_mic", None)
-    st.session_state.pop("transcribed_symptoms_editor", None)
-
+    st.rerun()
 
 def _render_login_tab():
-    st.subheader("Login")
-    st.caption("Use your patient email to login.")
+    st.subheader("Patient Login")
     login_email = st.text_input("Patient Email", placeholder="you@example.com")
 
     if st.button("Login", type="primary", use_container_width=True):
         clean_login_email = login_email.strip().lower()
-        if not clean_login_email:
-            st.warning("Please enter your patient email.")
-            return
-
         patient_data = get_patient_by_email(clean_login_email)
         if not patient_data:
-            st.error("Email not found. Please check and try again.")
+            st.error("Email not found.")
             return
 
         patient_id = patient_data["id"]
@@ -182,91 +147,73 @@ def _render_login_tab():
         st.session_state.patient_id = patient_id
         st.session_state.user_profile = fhir_profile or dict(patient_data)
         st.session_state[CURRENT_PAGE_KEY] = "Dashboard"
-        st.success(f"Welcome back, {patient_data['name']}!")
         st.rerun()
 
-
 def _render_signup_tab():
-    st.subheader("Signup")
-    st.caption("Create a new patient profile.")
+    st.subheader("New Patient Signup")
     with st.form("signup_form_main"):
-        patient_email = st.text_input("Patient Email")
+        patient_email = st.text_input("Email")
         name = st.text_input("Full Name")
         age = st.number_input("Age", 1, 120, 25)
         sex = st.selectbox("Sex", ["Male", "Female", "Other"])
-        place = st.text_input("Location/City")
+        place = st.text_input("Location")
 
         col1, col2 = st.columns(2)
         with col1:
-            height_cm = st.number_input("Height (cm)", min_value=50.0, max_value=250.0, value=170.0, step=0.5)
+            height_cm = st.number_input("Height (cm)", 50.0, 250.0, 170.0)
         with col2:
-            weight_kg = st.number_input("Weight (kg)", min_value=20.0, max_value=300.0, value=70.0, step=0.5)
+            weight_kg = st.number_input("Weight (kg)", 20.0, 300.0, 70.0)
 
         st.divider()
         allergies_text = st.text_input("Allergies (comma separated)")
-        conditions_text = st.text_input("Known Conditions (comma separated)")
+        conditions_text = st.text_input("Conditions (comma separated)")
 
         st.divider()
-        doctor_name = st.text_input("Primary Doctor Name")
-        hospital_name = st.text_input("Hospital/Clinic")
-        dr_email = st.text_input("Doctor's Email")
+        st.markdown("**Your Physician (Used for Doctor Dashboard Link)**")
+        doctor_name = st.text_input("Doctor's Name")
+        dr_email = st.text_input("Doctor's Email (Required for Dashboard link)")
 
-        submitted = st.form_submit_button("Create Profile", type="primary", use_container_width=True)
-        if not submitted:
-            return
+        submitted = st.form_submit_button("Create Profile", type="primary")
+        if submitted:
+            clean_email = patient_email.strip().lower()
+            if not clean_email or not name.strip():
+                st.error("Required fields missing.")
+                return
 
-        clean_email = patient_email.strip().lower()
-        if not clean_email or not name.strip() or not place.strip():
-            st.error("Patient Email, Full Name, and Location/City are required.")
-            return
+            pid = save_patient(clean_email, name.strip(), int(age), sex, float(height_cm), float(weight_kg), place.strip())
+            
+            # Save related info
+            for a in [x.strip() for x in allergies_text.split(",") if x.strip()]:
+                save_allergy(pid, a)
+            for c in [x.strip() for x in conditions_text.split(",") if x.strip()]:
+                save_known_condition(pid, c)
+            if dr_email.strip():
+                save_physician(pid, doctor_name.strip() or "Provider", "Clinic", dr_email.strip())
 
-        if get_patient_by_email(clean_email):
-            st.error("This email is already registered. Please login instead.")
-            return
-
-        pid = save_patient(clean_email, name.strip(), int(age), sex, float(height_cm), float(weight_kg), place.strip())
-
-        for allergen in [a.strip() for a in allergies_text.split(",") if a.strip()]:
-            save_allergy(pid, allergen)
-
-        for condition in [c.strip() for c in conditions_text.split(",") if c.strip()]:
-            save_known_condition(pid, condition)
-
-        if doctor_name.strip() or hospital_name.strip() or dr_email.strip():
-            save_physician(
-                pid,
-                doctor_name.strip() or "Not Provided",
-                hospital_name.strip(),
-                dr_email.strip(),
-            )
-
-        fhir_profile = _load_fhir_patient_profile(pid)
-        st.session_state.is_authenticated = True
-        st.session_state.patient_id = pid
-        st.session_state.user_profile = fhir_profile or {"name": name.strip(), "id": pid}
-        st.session_state[CURRENT_PAGE_KEY] = "Dashboard"
-        st.success("Signup successful!")
-        st.info(f"Registered email: {clean_email}")
-        st.caption(f"Internal Patient ID: `{pid}`")
-        st.rerun()
-
+            fhir_profile = _load_fhir_patient_profile(pid)
+            st.session_state.is_authenticated = True
+            st.session_state.patient_id = pid
+            st.session_state.user_profile = fhir_profile or {"name": name.strip(), "id": pid}
+            st.session_state[CURRENT_PAGE_KEY] = "Dashboard"
+            st.rerun()
 
 def show():
     init_session()
 
     if st.session_state.get("is_authenticated"):
-        _render_patient_dashboard()
+        # If logged in as doctor, show dashboard logic happens in main.py
+        # But if they end up here somehow while logged in as patient:
+        if st.session_state.user_profile.get("role") == "doctor":
+             st.info("You are logged in as a provider. Use the sidebar to view the Doctor Dashboard.")
+        else:
+            _render_patient_dashboard()
         return
 
-    st.title("CareDevi Patient Portal")
-    st.write("Login to your account or signup as a new patient.")
-
-    if AUTH_MODE_KEY not in st.session_state:
-        st.session_state[AUTH_MODE_KEY] = LOGIN_OPTION
-
+    st.title("🏥 CareDevi Portal")
+    
     auth_mode = st.radio(
-        "Choose one:",
-        [LOGIN_OPTION, SIGNUP_OPTION],
+        "Who are you?",
+        [LOGIN_OPTION, SIGNUP_OPTION, DOCTOR_LOGIN],
         key=AUTH_MODE_KEY,
         horizontal=True,
     )
@@ -274,5 +221,7 @@ def show():
 
     if auth_mode == LOGIN_OPTION:
         _render_login_tab()
-    else:
+    elif auth_mode == SIGNUP_OPTION:
         _render_signup_tab()
+    else:
+        _render_doctor_login()
