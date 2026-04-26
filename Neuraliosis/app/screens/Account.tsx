@@ -11,20 +11,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Foundation from '@expo/vector-icons/Foundation';
 import { useEffect, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
-
 import { useAuthStore } from 'store/auth-store';
 import { updateProfile } from 'api/users-service';
 import { getErrorMessage } from 'api/contracts';
-import { ProfileSkeleton } from '../components/SkeletonLoader';
-import SkeletonLoader from '../components/SkeletonLoader';
+import SkeletonLoader, { ProfileSkeleton } from '../components/SkeletonLoader';
 
 type EditableField = 'full_name' | 'email';
 
 export default function UserProfileScreen() {
   const { user, setUser, logout, fetchProfile, isAuthenticated } = useAuthStore();
+
   const [loading, setLoading] = useState(!user);
   const [saving, setSaving] = useState(false);
+
   const [modal, setModal] = useState<EditableField | null>(null);
   const [tempValue, setTempValue] = useState('');
 
@@ -47,7 +46,10 @@ export default function UserProfileScreen() {
 
     setSaving(true);
     try {
-      const updated = await updateProfile({ [modal]: tempValue.trim() });
+      const updated = await updateProfile({
+        [modal]: tempValue.trim(),
+      });
+
       setUser(updated);
       setModal(null);
     } catch (err) {
@@ -57,42 +59,17 @@ export default function UserProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: () => void logout(),
-      },
-    ]);
-  };
-
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-red-50/30">
-        <ScrollView className="flex-1 px-6 pb-10 pt-6">
-          <ProfileSkeleton />
-          <View className="mt-6 gap-4 rounded-3xl bg-white p-5">
-            {[1, 2, 3, 4].map((i) => (
-              <View key={i} className="flex-row items-center justify-between">
-                <View className="gap-1">
-                  <SkeletonLoader width={60} height={10} />
-                  <SkeletonLoader width={140} height={16} />
-                </View>
-                <SkeletonLoader width={18} height={18} borderRadius={4} />
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  const displayFields: { label: string; value: string; editable?: EditableField }[] = [
+  const displayFields: {
+    label: string;
+    value: string;
+    editable?: EditableField;
+  }[] = [
     { label: 'Name', value: user?.full_name ?? '—', editable: 'full_name' },
     { label: 'Email', value: user?.email ?? '—', editable: 'email' },
-    { label: 'Role', value: (user?.role ?? '—').charAt(0).toUpperCase() + (user?.role ?? '').slice(1) },
+    {
+      label: 'Role',
+      value: (user?.role ?? '—').charAt(0).toUpperCase() + (user?.role ?? '').slice(1),
+    },
     {
       label: 'Location',
       value:
@@ -112,12 +89,25 @@ export default function UserProfileScreen() {
     },
   ];
 
-  const initials = (user?.full_name ?? 'U')
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-red-50/30">
+        <ScrollView className="flex-1 px-6 pb-10 pt-6">
+          <ProfileSkeleton />
+          <View className="mt-6 gap-4 rounded-3xl bg-white p-5">
+            {[1, 2, 3, 4].map((i) => (
+              <View key={i} className="flex-row items-center justify-between">
+                <View className="gap-1">
+                  <SkeletonLoader width={60} height={10} />
+                  <SkeletonLoader width={140} height={16} />
+                </View>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-red-50/30">
@@ -125,38 +115,48 @@ export default function UserProfileScreen() {
         {/* Header */}
         <View className="mb-6 items-center">
           <View className="h-24 w-24 items-center justify-center rounded-full bg-red-400">
-            <Text className="text-3xl font-bold text-white">{initials}</Text>
+            <Text className="text-3xl font-bold text-white">
+              {(user?.full_name ?? 'U')
+                .split(' ')
+                .map((w) => w[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2)}
+            </Text>
           </View>
 
-          <Text className="mt-3 text-2xl font-bold text-gray-900">{user?.full_name}</Text>
+          <Text className="mt-3 text-2xl font-bold text-gray-900">
+            {user?.full_name}
+          </Text>
 
           <Text className="text-xs text-gray-500">{user?.email}</Text>
         </View>
 
-        {/* Editable Info */}
+        {/* Fields */}
         <View className="mb-6 gap-4 rounded-3xl bg-white p-5">
-          {displayFields.map((field) => (
+          {displayFields.map((field: any) => (
             <ProfileRow
               key={field.label}
               label={field.label}
               value={field.value}
-              onEdit={field.editable ? () => openEdit(field.editable!) : undefined}
+              onEdit={
+                field.editable ? () => openEdit(field.editable) : undefined
+              }
             />
           ))}
         </View>
-
-        {/* Logout */}
-        <TouchableOpacity onPress={handleLogout} className="rounded-3xl bg-red-400 py-4">
-          <Text className="text-center font-bold text-white">Logout</Text>
+        <TouchableOpacity
+        onPress={logout}
+        className="flex-1 rounded-2xl bg-gray-100 py-3">
+          <Text className="text-center font-bold text-red-700">Logout</Text>
         </TouchableOpacity>
-
         <View className="h-32" />
       </ScrollView>
 
-      {/* MODAL */}
-      <Modal visible={modal !== null} transparent animationType="fade">
-        <View className="flex-1 items-center justify-center bg-black/40 px-6">
-          <View className="w-full rounded-3xl bg-white p-5">
+      {/* Modal */}
+      <Modal visible={!!modal} transparent animationType="fade">
+        <View className="flex-1 justify-center bg-black/40 px-6">
+          <View className="rounded-2xl bg-white p-5">
             <Text className="mb-3 text-lg font-bold text-gray-900">
               Edit {modal === 'full_name' ? 'Name' : 'Email'}
             </Text>
@@ -173,18 +173,26 @@ export default function UserProfileScreen() {
               <TouchableOpacity
                 onPress={() => setModal(null)}
                 disabled={saving}
-                className="flex-1 rounded-2xl bg-gray-100 py-3">
-                <Text className="text-center font-bold text-gray-700">Cancel</Text>
+                className="flex-1 rounded-2xl bg-gray-100 py-3"
+              >
+                <Text className="text-center font-bold text-gray-700">
+                  Cancel
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={saveChanges}
                 disabled={saving}
-                className={`flex-1 rounded-2xl py-3 ${saving ? 'bg-red-300' : 'bg-red-400'}`}>
+                className={`flex-1 rounded-2xl py-3 ${
+                  saving ? 'bg-red-300' : 'bg-red-400'
+                }`}
+              >
                 {saving ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-center font-bold text-white">Save</Text>
+                  <Text className="text-center font-bold text-white">
+                    Save
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -195,7 +203,7 @@ export default function UserProfileScreen() {
   );
 }
 
-/* 🔧 Reusable row component */
+/* Reusable Row */
 function ProfileRow({
   label,
   value,
@@ -208,7 +216,10 @@ function ProfileRow({
   const Wrapper = onEdit ? TouchableOpacity : View;
 
   return (
-    <Wrapper onPress={onEdit} className="flex-row items-center justify-between">
+    <Wrapper
+      onPress={onEdit}
+      className="flex-row items-center justify-between"
+    >
       <View>
         <Text className="text-xs uppercase text-gray-500">{label}</Text>
         <Text className="font-bold text-gray-900">{value}</Text>

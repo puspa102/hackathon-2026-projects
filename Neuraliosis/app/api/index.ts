@@ -5,4 +5,6 @@ export * from './api-client';
 export * from './token-storage';
 export * from './users-service';
 export * from './doctors-service';
-export * from './appointments-service'
+export * from './appointments-service';
+export * from './medicines-service';
+export * from './orders-service';

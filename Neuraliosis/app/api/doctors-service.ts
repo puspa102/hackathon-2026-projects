@@ -6,10 +6,7 @@ export async function listDoctors(): Promise<DoctorProfile[]> {
   return apiFetch<DoctorProfile[]>(API_ENDPOINTS.doctors.list);
 }
 
-export async function getNearbyDoctors(
-  lat: number,
-  lng: number,
-): Promise<DoctorProfile[]> {
+export async function getNearbyDoctors(lat: number, lng: number): Promise<DoctorProfile[]> {
   return apiFetch<DoctorProfile[]>(API_ENDPOINTS.doctors.nearby, {
     params: { lat: String(lat), lng: String(lng) },
   });

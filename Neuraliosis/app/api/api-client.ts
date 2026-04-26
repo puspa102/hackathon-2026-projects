@@ -23,7 +23,6 @@ async function attemptTokenRefresh(): Promise<boolean> {
     }
 
     const json = await res.json();
-
     const newAccess: string = json.access;
     if (newAccess) {
       await saveTokens(newAccess, refresh);
@@ -69,7 +68,7 @@ export async function apiFetch<T>(
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   let res;
   try {
@@ -82,7 +81,7 @@ export async function apiFetch<T>(
   } catch (error: any) {
     throw new ApiClientError(error.name === 'AbortError' ? 'Network timeout' : 'Network error', {
       httpStatus: 0,
-      errors: [error.name === 'AbortError' ? 'Network timeout: Is the backend running on 0.0.0.0?' : 'Network error'],
+      errors: [error.name === 'AbortError' ? 'Network timeout: Is the backend running?' : 'Network error'],
     });
   } finally {
     clearTimeout(timeoutId);
@@ -98,9 +97,7 @@ export async function apiFetch<T>(
     const refreshed = await refreshPromise;
     if (refreshed) {
       const newToken = await getAccessToken();
-      if (newToken) {
-        headers['Authorization'] = `Bearer ${newToken}`;
-      }
+      if (newToken) headers['Authorization'] = `Bearer ${newToken}`;
 
       res = await fetch(url, {
         method,
@@ -114,6 +111,51 @@ export async function apiFetch<T>(
 
   if (!envelope.isSuccess) {
     throw new ApiClientError(envelope.errorMessage[0] ?? 'Request failed', {
+      httpStatus: res.status,
+      statusCode: envelope.statusCode,
+      errors: envelope.errorMessage,
+    });
+  }
+
+  return envelope.result;
+}
+
+/** Multipart file upload — for photos and report files */
+export async function apiUpload<T>(
+  endpoint: string,
+  formData: FormData,
+  method: 'POST' | 'PATCH' | 'PUT' = 'POST',
+): Promise<T> {
+  const url = `${API_BASE_URL}${endpoint}`;
+  const headers: Record<string, string> = {};
+
+  const token = await getAccessToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s for uploads
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers,
+      body: formData,
+      signal: controller.signal as any,
+    });
+  } catch (error: any) {
+    throw new ApiClientError(error.name === 'AbortError' ? 'Upload timeout' : 'Upload failed', {
+      httpStatus: 0,
+      errors: [error.message],
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  const envelope: ApiEnvelope<T> = await res.json();
+
+  if (!envelope.isSuccess) {
+    throw new ApiClientError(envelope.errorMessage[0] ?? 'Upload failed', {
       httpStatus: res.status,
       statusCode: envelope.statusCode,
       errors: envelope.errorMessage,
