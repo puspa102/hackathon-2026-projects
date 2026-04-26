@@ -6,6 +6,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.config import get_settings
+from backend.routers import bills, insurance, fhir
 
 # Configure logging
 logging.basicConfig(
@@ -37,8 +38,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers (to be added in later commits)
-
+# Register routers
+app.include_router(bills.router)
+app.include_router(insurance.router)
+app.include_router(fhir.router)
 
 @app.get("/")
 async def root():
