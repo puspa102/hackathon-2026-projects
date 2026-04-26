@@ -18,7 +18,9 @@ class ReportListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return DischargeReport.objects.filter(patient=self.request.user)
+        if self.request.user.is_authenticated:
+            return DischargeReport.objects.filter(patient=self.request.user)
+        return DischargeReport.objects.none()
 
 
 class ReportDetailView(generics.RetrieveDestroyAPIView):
@@ -26,4 +28,6 @@ class ReportDetailView(generics.RetrieveDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return DischargeReport.objects.filter(patient=self.request.user)
+        if self.request.user.is_authenticated:
+            return DischargeReport.objects.filter(patient=self.request.user)
+        return DischargeReport.objects.none()
