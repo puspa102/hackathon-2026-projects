@@ -2,7 +2,7 @@ import type { HomeSummary } from '@/types/app-data';
 
 const mockHomeSummary: HomeSummary = {
   greetingName: 'Sarah',
-  summaryText: 'Here is your health summary for today.',
+  summaryText: "Welcome back, Sarah. Let's see how you're doing today, dear.",
   medication: {
     label: 'NEXT MEDICATION',
     name: 'Lisinopril 10mg',
@@ -24,7 +24,7 @@ const mockHomeSummary: HomeSummary = {
   ],
   doctorMessage: {
     title: 'Message from Dr. Miller',
-    message: '"Great progress on your walking goals this week, Sarah. Keep it up!"',
+    message: '"I am so proud of the progress you\'re making with your walking goals, Sarah. You\'re doing a wonderful job!"',
   },
   emergencyLabel: 'EMERGENCY',
 };

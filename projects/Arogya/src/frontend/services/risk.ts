@@ -4,7 +4,7 @@ const mockRiskResultSummary: RiskResultSummary = {
   title: 'Warning',
   severityLabel: 'Warning',
   message:
-    'Your symptoms suggest a slight decline. We recommend contacting your doctor.',
+    "I've noticed a small change in how you're feeling, and I want to make sure you're getting all the support you need. It might be a good idea to reach out to your doctor just to be safe.",
   metrics: [
     {
       id: 'blood-pressure',
@@ -28,13 +28,13 @@ const mockRiskResultSummary: RiskResultSummary = {
       badgeBackground: '#EFF1F4',
     },
   ],
-  physicianInsightTitle: "Physician's Insight",
+  physicianInsightTitle: "A Note from Your Care Team",
   physicianInsightMessage:
-    'Recent values are 12% higher than your 7-day average. This often occurs when hydration levels are low or stress is elevated.',
+    "Your recent values are just a little bit higher than usual, about 12% above your 7-day average. Please don't worry—this can sometimes happen when you need a bit more hydration or a moment of rest. We're keeping a close eye on everything for you.",
   primaryActionLabel: 'Chat with Doctor',
   secondaryActionLabel: 'View Emergency Info',
   supportMessage:
-    '"Take a deep breath. We\'ve notified your primary caregiver, Dr. Aris, of these results. They will review your dashboard shortly."',
+    "\"Take a deep breath, dear. We've gently notified Dr. Aris about these results so they can look over everything. You're in good hands, and we're right here with you.\"",
 };
 
 export async function getRiskResultSummary(): Promise<RiskResultSummary> {

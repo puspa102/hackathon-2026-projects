@@ -61,7 +61,7 @@ export default function ChatScreen() {
           {/* Doctor Message 1 */}
           <View style={styles.messageLeft}>
             <View style={styles.bubbleLeft}>
-              <Text style={styles.textLeft}>Hello! I{"'"}m sorry to hear that. Could you pinpoint exactly where the pain is? Is it more sharp or a dull ache?</Text>
+              <Text style={styles.textLeft}>Hello there! I{"'"}m so sorry to hear you{"'"}re feeling some pain. Could you gently describe where it is for me? Is it a sharp feeling, or more of a dull ache? I{"'"}m here to help.</Text>
             </View>
             <Text style={styles.timeLeft}>09:15 AM</Text>
           </View>
@@ -84,7 +84,7 @@ export default function ChatScreen() {
           {/* Doctor Message 2 */}
           <View style={styles.messageLeft}>
             <View style={styles.bubbleLeft}>
-              <Text style={styles.textLeft}>Understood. That sounds like it might be postural stress. I{"'"}ve uploaded a modified stretch routine for you to try this morning. Can you review this?</Text>
+              <Text style={styles.textLeft}>I understand, and I appreciate you sharing that with me. It sounds like it might be a bit of postural stress. I{"'"}ve shared a gentle new stretch routine for you to try this morning. Would you mind taking a look at it when you have a moment? Take your time.</Text>
             </View>
             <Text style={styles.timeLeft}>09:20 AM</Text>
           </View>
