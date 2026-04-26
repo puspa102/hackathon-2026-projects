@@ -35,7 +35,7 @@ THIRD_PARTY_APPS = [
     'corsheaders',
 ]
 
-# LOCAL_APPS = []
+LOCAL_APPS = ['visualisation']
 
 DJANGO_APPS = [
     'django.contrib.admin',
