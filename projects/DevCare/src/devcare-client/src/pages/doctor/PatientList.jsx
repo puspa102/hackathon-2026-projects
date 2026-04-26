@@ -12,11 +12,7 @@ function PatientList() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterStatus, setFilterStatus] = useState('All')
 
-  // Mock data for demo consistency
-  const mockPatients = [
-    { id: 'm1', name: 'Alice Smith', progress: 75, condition: 'ACL Reconstruction', lastSeen: '2026-04-20', status: 'On Track', risk: 'Low' },
-    { id: 'm2', name: 'Bob Johnson', progress: 45, condition: 'Shoulder Impingement', lastSeen: '2026-04-18', status: 'Falling Behind', risk: 'High' },
-  ]
+
 
   useEffect(() => {
     const fetchPatientsWithStatus = async () => {
@@ -44,11 +40,10 @@ function PatientList() {
           }
         }))
         
-        setPatients([...patientsWithStatus, ...mockPatients])
+        setPatients(patientsWithStatus)
       } catch (err) {
         console.error(err)
         setError(err.message)
-        setPatients(mockPatients)
       } finally {
         setLoading(false)
       }
@@ -82,8 +77,8 @@ function PatientList() {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-12">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] mb-2">
-             <div className="h-1 w-4 bg-[var(--color-primary)] rounded-full"></div>
-             Patient Management
+            <div className="h-1 w-4 bg-[var(--color-primary)] rounded-full"></div>
+            Patient Management
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight">Patient List</h1>
           <p className="text-[var(--color-text-muted)] mt-2 text-lg font-medium">Manage and monitor all your connected patients.</p>
@@ -108,9 +103,9 @@ function PatientList() {
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
                   <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Patient Identity</th>
-                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Clinical Condition</th>
-                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Last Encounter</th>
-                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Clinical Status</th>
+                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Connection Status</th>
+                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500">Connected Date</th>
+                  <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500"> Status</th>
                   <th className="px-8 py-5 text-xs font-bold uppercase tracking-widest text-slate-500 text-right">Actions</th>
                 </tr>
               </thead>
@@ -124,8 +119,8 @@ function PatientList() {
                           {patient.name.split(' ').map(n => n[0]).join('')}
                         </div>
                         <div>
-                           <span className="block font-bold text-slate-800">{patient.name}</span>
-                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {patient.isReal ? `DC-REAL-${patient.id}` : `DC-MOCK-${patient.id}`}</span>
+                          <span className="block font-bold text-slate-800">{patient.name}</span>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ID: {patient.isReal ? `DC-REAL-${patient.id}` : `DC-MOCK-${patient.id}`}</span>
                         </div>
                       </div>
                     </td>
@@ -142,15 +137,15 @@ function PatientList() {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">
-                         <Link 
+                        <Link
                           to={`/doctor/patient/${patient.id}`}
                           className="btn-secondary py-2 px-4 text-xs h-9"
-                         >
-                           Manage
-                         </Link>
-                         <button className="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
-                           <MoreHorizontal size={18} />
-                         </button>
+                        >
+                          Manage
+                        </Link>
+                        <button className="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50">
+                          <MoreHorizontal size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -169,11 +164,11 @@ function PatientList() {
       </div>
 
       <div className="mt-8 flex items-center justify-between px-4">
-         <p className="text-sm text-slate-500 font-medium">Showing <strong>{filteredPatients.length}</strong> connected patients</p>
-         <div className="flex gap-2">
-            <button className="btn-secondary py-2 px-6 text-xs" disabled>Previous</button>
-            <button className="btn-secondary py-2 px-6 text-xs" disabled={filteredPatients.length < 10}>Next Page</button>
-         </div>
+        <p className="text-sm text-slate-500 font-medium">Showing <strong>{filteredPatients.length}</strong> connected patients</p>
+        <div className="flex gap-2">
+          <button className="btn-secondary py-2 px-6 text-xs" disabled>Previous</button>
+          <button className="btn-secondary py-2 px-6 text-xs" disabled={filteredPatients.length < 10}>Next Page</button>
+        </div>
       </div>
     </div>
   )
