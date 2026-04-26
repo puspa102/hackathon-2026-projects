@@ -26,6 +26,19 @@ def init_db() -> None:
     conn = get_connection()
     with open(SCHEMA_PATH) as f:
         conn.executescript(f.read())
+    
+    # --- ADDED: Ensure appointments table exists during init ---
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id TEXT NOT NULL,
+            doctor_email TEXT NOT NULL,
+            appointment_time TEXT NOT NULL,
+            summary TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
     _ensure_patient_email_column(conn)
     conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_patients_email ON patients(email)")
     conn.commit()
@@ -152,6 +165,43 @@ def save_known_condition(patient_id: str, condition_name: str, icd10_code: str =
     conn.close()
     return cond_id
 
+def save_appointment(patient_id, doctor_email, appointment_time, summary):
+    conn = get_connection()
+    # Safety Check: Ensure table exists before insert
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patient_id TEXT NOT NULL,
+            doctor_email TEXT NOT NULL,
+            appointment_time TEXT NOT NULL,
+            summary TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.execute(
+        "INSERT INTO appointments (patient_id, doctor_email, appointment_time, summary) "
+        "VALUES (?, ?, ?, ?)",
+        (patient_id, doctor_email, appointment_time, summary)
+    )
+    conn.commit()
+    conn.close()
+    
+def get_appointments_for_doctor(doctor_email):
+    """Fetches all appointments for a specific doctor."""
+    conn = get_connection()
+    # Using a JOIN to get the patient name from the patient table
+    query = """
+        SELECT a.*, p.name as patient_name 
+        FROM appointments a
+        JOIN patients p ON a.patient_id = p.id
+        WHERE a.doctor_email = ?
+        ORDER BY a.appointment_time ASC
+    """
+    cursor = conn.execute(query, (doctor_email,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    return [dict(row) for row in rows]
 
 def save_physician(patient_id: str, doctor_name: str, hospital_name: str, email: str) -> str:
     phys_id = str(uuid.uuid4())
@@ -193,7 +243,6 @@ def get_patient_as_fhir(patient_id: str) -> dict:
         "gender": p.get("sex", "unknown").lower(),
         "birthDate": _age_to_birthdate(p.get("age")),
         "address": [{"text": p.get("place", ""), "line": [p.get("place", "")]}],
-        # These extensions are what store your Height and Weight
         "extension": [
             {
                 "url": "http://hl7.org/fhir/StructureDefinition/patient-height",
@@ -205,7 +254,7 @@ def get_patient_as_fhir(patient_id: str) -> dict:
             }
         ]
     }
-    return fhir_patient # Simplified for brevity, same logic as your original
+    return fhir_patient 
 
 
 def get_sessions_for_doctor(doctor_email: str):
