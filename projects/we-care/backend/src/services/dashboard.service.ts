@@ -1,5 +1,4 @@
 import { supabase } from "../lib/supabase";
-import { extractLookupName } from "./lookup-service";
 import type { ReferralViewType } from "./referral-view";
 
 type ReferralStatus = "pending" | "sent" | "accepted" | "completed";
@@ -14,35 +13,20 @@ interface ReferralRow {
   created_at: string;
   updated_at: string;
   doctor_id: string;
-  referred_by: string;
   patients: { full_name: string } | Array<{ full_name: string }> | null;
 }
 
-interface DoctorDirectoryRow {
-  id: string;
-  full_name: string;
-  specialties: { name: string } | Array<{ name: string }> | null;
-}
-
 async function getDoctorsByIds(doctorIds: string[]) {
-  if (!doctorIds.length) return new Map<string, { full_name: string; specialty: string }>();
+  if (!doctorIds.length) return new Map<string, { full_name: string }>();
 
   const { data, error } = await supabase
     .from("doctors")
-    .select("id, full_name, specialties(name)")
+    .select("id, full_name")
     .in("id", doctorIds);
 
   if (error) throw new Error(error.message);
 
-  return new Map(
-    ((data ?? []) as DoctorDirectoryRow[]).map((doctor) => [
-      doctor.id,
-      {
-        full_name: doctor.full_name,
-        specialty: extractLookupName(doctor.specialties) ?? "General",
-      },
-    ]),
-  );
+  return new Map((data ?? []).map((doctor) => [doctor.id, { full_name: doctor.full_name }]));
 }
 
 function toReferralStatus(status: ReferralStatus) {
@@ -64,14 +48,14 @@ export async function getDashboardSummary(doctorId: string, type: ReferralViewTy
     .from("referrals")
     .select(
       `
-      id, diagnosis, required_specialty, urgency, status, created_at, updated_at, doctor_id, referred_by,
+      id, diagnosis, required_specialty, urgency, status, created_at, updated_at, doctor_id,
       patients (full_name)
     `,
     )
     .order("created_at", { ascending: false });
 
   if (type === "outbound") {
-    query = query.eq("referred_by", doctorId);
+    query = query.eq("doctor_id", doctorId);
   } else {
     query = query.eq("doctor_id", doctorId);
 
@@ -86,13 +70,7 @@ export async function getDashboardSummary(doctorId: string, type: ReferralViewTy
 
   const referrals = (data ?? []) as ReferralRow[];
   const doctorMap = await getDoctorsByIds(
-    [
-      ...new Set(
-        referrals
-          .flatMap((referral) => [referral.doctor_id, referral.referred_by])
-          .filter(Boolean),
-      ),
-    ],
+    [...new Set(referrals.map((referral) => referral.doctor_id).filter(Boolean))],
   );
   const totalReferrals = referrals.length;
   const pendingReferrals = referrals.filter((referral) => referral.status === "pending").length;
@@ -156,9 +134,7 @@ export async function getDashboardSummary(doctorId: string, type: ReferralViewTy
 
   const recentReferrals = referrals.slice(0, 5).map((referral) => {
     const patient = Array.isArray(referral.patients) ? referral.patients[0] : referral.patients;
-    const relatedDoctor = doctorMap.get(
-      type === "outbound" ? referral.doctor_id : referral.referred_by,
-    );
+    const relatedDoctor = doctorMap.get(referral.doctor_id);
 
     return {
       id: referral.id,
