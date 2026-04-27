@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createHashRouter } from "react-router-dom";
 import { AppLayout } from "../components/layout/AppLayout";
 import DashboardPage from "../pages/DashboardPage";
 import DoctorProfilePage from "../pages/DoctorProfilePage";
@@ -19,7 +19,7 @@ import SpecialistsPage from "../pages/SpecialistsPage";
 import { GuestRoute } from "./GuestRoute";
 import { ProtectedRoute } from "./ProtectedRoute";
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   // Auth — redirect to / if already logged in
   {
     element: <GuestRoute />,

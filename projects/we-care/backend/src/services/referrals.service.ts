@@ -275,7 +275,7 @@ export async function updateReferralStatus(
 
     if (patient?.email) {
       const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173';
-      await sendPatientPortalEmail(patient.email, patient.full_name, `${frontendUrl}/p/${token}`);
+      await sendPatientPortalEmail(patient.email, patient.full_name, `${frontendUrl}/#/p/${token}`);
     }
 
     return { ...data, patient_token: token };
