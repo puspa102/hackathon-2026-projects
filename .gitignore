@@ -1,3 +1,22 @@
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.env*
+dist/
+build/
+node_modules/
+coverage/
+.DS_Store
+*.log
+*.bak
+*.tmp
+*.cache
+.pnpm-store/
+*.tsbuildinfo
+*.eslintcache
+*.prettiercache
 **/.DS_Store
 *.env
 # environment file
